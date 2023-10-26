@@ -21,8 +21,9 @@ class Nixie
 {
 private:
     uint8_t digit_values[DIGITS_SIZE];
-    uint8_t current = 0;
-    uint8_t is_on = 0;
+    uint8_t brightness;
+    uint8_t current;
+    uint8_t ticks_count;
 
     void on_digit(uint8_t num);
 
@@ -32,6 +33,8 @@ public:
     Nixie();
 
     void begin();
+
+    void set_brightness(uint8_t brightness);
 
     void set_digits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6);
 

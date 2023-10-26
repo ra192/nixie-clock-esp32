@@ -1,7 +1,9 @@
 #include <nixie.h>
 #include <Arduino.h>
 
-uint8_t digit_codes[] = {1,0,9,8,7,6,5,4,3,2};
+#define TICKS_COUNT_MAX 3
+
+uint8_t digit_codes[] = {1, 0, 9, 8, 7, 6, 5, 4, 3, 2};
 
 void Nixie::on_digit(uint8_t num)
 {
@@ -31,6 +33,8 @@ void Nixie::off_digits()
 
 Nixie::Nixie()
 {
+    brightness = 1;
+    current = 0;
 }
 
 void Nixie::begin()
@@ -46,6 +50,13 @@ void Nixie::begin()
     pinMode(L4_PIN, OUTPUT);
     pinMode(L5_PIN, OUTPUT);
     pinMode(L6_PIN, OUTPUT);
+
+    
+}
+
+void Nixie::set_brightness(uint8_t brightness)
+{
+    this->brightness = brightness;
 }
 
 void Nixie::set_digits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
@@ -60,14 +71,20 @@ void Nixie::set_digits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, u
 
 void Nixie::refresh(void)
 {
-    if (is_on)
-    {
-        off_digits();
-        is_on = 0;
-    }
-    else
+    if (ticks_count == 0)
     {
         on_digit(current);
+    }
+    else if (ticks_count == brightness)
+    {
+        off_digits();
+    }
+
+    if (ticks_count == TICKS_COUNT_MAX)
+    {
+        ticks_count = 0;
         current = (current + 1) % DIGITS_SIZE;
     }
+    else
+        ticks_count++;
 }
