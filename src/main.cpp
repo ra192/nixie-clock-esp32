@@ -49,10 +49,10 @@ RgbColor black(0);
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
-bool isSyncTime;
+uint8_t isSyncTime;
 int timeZone;
 
-void startWifiManager()
+void startAP()
 {
   WiFi.mode(WIFI_AP);
   // Connect to Wi-Fi network with SSID and password
@@ -73,15 +73,17 @@ void setupWifi()
     if (WiFi.waitForConnectResult() != WL_CONNECTED)
     {
       Serial.printf("WiFi Failed!\n");
-      startWifiManager();
+      startAP();
+    }
+    else
+    {
+      Serial.println("Connected to wifi network");
     }
   }
   else
   {
-    startWifiManager();
+    startAP();
   }
-
-  Serial.println("Connected to wifi network");
 }
 
 String processor(const String &var)
@@ -114,12 +116,15 @@ String processor(const String &var)
   return String();
 }
 
-void setup_webserver()
+void setupWebserver()
 {
   server.on("/save-wifi-creds", HTTP_POST, [](AsyncWebServerRequest *request)
             {
+      Serial.println("save wifi creds called");
       String ssid = request->getParam(SSID, true)->value();
+      Serial.printf("Ssid : %s", ssid);
       String password = request->getParam(PASSWORD, true)->value();
+      Serial.printf("password : %s", ssid);
 
       myPrefs.putString(SSID, ssid);
       myPrefs.putString(PASSWORD, password);
@@ -143,30 +148,23 @@ void setup_webserver()
 
     Rtc.SetDateTime(updatedTime);
 
-    String isSyncTimeParam = request->getParam(SYNC_TIME, true)->value();
-    if(isSyncTimeParam.equals("True"))
-    {
-      isSyncTime = true;
-    }
-    else{
-      isSyncTime = false;
-    }
+    isSyncTime = request->getParam(SYNC_TIME, true)->value().toInt();
     myPrefs.putInt(SYNC_TIME, isSyncTime);
 
     timeZone = request->getParam(TIME_ZONE, true)->value().toInt();
     myPrefs.putInt(TIME_ZONE, timeZone);
+    timeClient.setTimeOffset(timeZone);
 
     request->send(200, "text/plain", "Time saved"); });
 
   server.on("/save-settings", HTTP_POST, [](AsyncWebServerRequest *request)
             { 
               brightness = request->getParam("brightness",true)->value().toInt();
-              nixie.set_brightness(brightness);
+              nixie.setBrightness(brightness);
               myPrefs.putUInt(BRIGHTNESS,brightness);
               request->send(200, "text/plain", "Settings saved"); });
 
-  server.serveStatic("/", SPIFFS, "/").setTemplateProcessor(processor).setDefaultFile("index.html").setFilter(ON_STA_FILTER);
-  server.serveStatic("/", SPIFFS, "/").setDefaultFile("wifi-manager.html").setFilter(ON_AP_FILTER);
+  server.serveStatic("/", SPIFFS, "/").setTemplateProcessor(processor).setDefaultFile("index.html");
 
   server.begin();
 }
@@ -176,7 +174,10 @@ void updateTime(void *params)
   for (;;)
   {
     RtcDateTime now = Rtc.GetDateTime();
-    nixie.set_digits(now.Hour() / 10, now.Hour() % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+    nixie.setDigits(now.Hour() / 10, now.Hour() % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+
+    Serial.printf("Sync time: %s\r\n", syncTime);
+    Serial.printf("Timezone: %s\r\n", timeZone);
 
     vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
@@ -215,7 +216,7 @@ void syncTime(void *params)
       {
         RtcDateTime now = Rtc.GetDateTime();
         RtcDateTime updatedTime = RtcDateTime(now.Year(), now.Month(), timeClient.getDay(),
-                                              timeClient.getHours() + timeZone, timeClient.getMinutes(), timeClient.getSeconds());
+                                              timeClient.getHours(), timeClient.getMinutes(), timeClient.getSeconds());
         Rtc.SetDateTime(updatedTime);
       }
     }
@@ -237,12 +238,10 @@ void setup()
     return;
   }
 
-  setupWifi();
-  setup_webserver();
-
-  brightness = myPrefs.getUInt(BRIGHTNESS, 2);
+  brightness = myPrefs.getUInt(BRIGHTNESS, 100);
+  nixie.setBrightness(brightness);
   nixie.begin();
-  nixie.set_brightness(brightness);
+
   Rtc.Begin();
 
   pinMode(DOT_1_PIN, OUTPUT);
@@ -270,11 +269,14 @@ void setup()
       NULL           // Task handle
   );
 
+  setupWifi();
+  setupWebserver();
+
   if (WiFi.isConnected())
   {
-    isSyncTime = myPrefs.getBool(SYNC_TIME, true);
+    isSyncTime = myPrefs.getInt(SYNC_TIME, 1);
     timeZone = myPrefs.getInt(TIME_ZONE);
-
+    timeClient.setTimeOffset(timeZone);
     timeClient.begin();
 
     xTaskCreate(
@@ -291,5 +293,4 @@ void setup()
 void loop()
 {
   nixie.refresh();
-  vTaskDelay(1 / portTICK_PERIOD_MS);
 }

@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>ESP Wi-Fi Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" type="text/css" href="style.css">
 </head>
+
 <body>
   <div class="topnav">
     <h1>ESP Wi-Fi Manager</h1>
@@ -13,33 +15,48 @@
   <div class="content">
     <div class="card-grid">
       <div class="card">
-        <form action="/save-time" method="POST">
+        <form action="/save-wifi-creds" method="POST">
           <p>
-            <label for="time">Time</label>
-            <input type="time" id ="time" name="time" value="%TIME_TEMPLATE%"><br>
-            <label for="sync_time">Sync time</label>
-            <input type="checkbox" id ="sync_time" name="sync_time" value="%SYNC_TIME_TEMPLATE%"><br>
-            <label for="time_zone">Time zone</label>
-            <select id="time_zone" name="time_zone">
-              <option value="0">0</option>
-              <option value="1">+1</option>
-              <option value="2">+2</option>
-              <option value="3">+3</option>
-            </select><br>
-            <input type ="submit" value ="Submit">
+            <label for="ssid">SSID</label>
+            <input type="text" id="ssid" name="ssid" /><br />
+            <label for="password">Password</label>
+            <input type="text" id="password" name="password" /><br />
+            <input type="submit" value="Submit" />
           </p>
         </form>
-      </div>
-      <div class="card">
-        <form action="/save-settings" method="POST">
-          <p>
-            <label for="brightness">Brightness</label>
-            <input type="number" id ="brightness" name="brightness" value="%BRIGHTNESS_TEMPLATE%" min="1" max="3"><br>
-            <input type ="submit" value ="Submit">
-          </p>
-        </form>
+        <div class="card">
+          <form action="/save-time" method="POST">
+            <p>
+              <label for="time">Time</label>
+              <input type="time" id="time" name="time" value="%TIME_TEMPLATE%" /><br />
+              <label for="sync_time">Sync time</label>
+              <select id="sync_time" name="sync_time">
+                <option value="1">on</option>
+                <option value="0">off</option>
+              </select><br />
+              <label for="time_zone">Time zone</label>
+              <select id="time_zone" name="time_zone">
+                <option value="0">0</option>
+                <option value="1">+1</option>
+                <option value="2">+2</option>
+                <option value="3">+3</option>
+              </select><br />
+              <input type="submit" value="Submit" />
+            </p>
+          </form>
+        </div>
+        <div class="card">
+          <form action="/save-settings" method="POST">
+            <p>
+              <label for="brightness">Brightness</label>
+              <input type="number" id="brightness" name="brightness" value="%BRIGHTNESS_TEMPLATE%" min="1"
+                max="100" /><br />
+              <input type="submit" value="Submit" />
+            </p>
+          </form>
+        </div>
       </div>
     </div>
-  </div>
 </body>
+
 </html>

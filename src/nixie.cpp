@@ -1,40 +1,26 @@
 #include <nixie.h>
 #include <Arduino.h>
 
-#define TICKS_COUNT_MAX 3
+const uint8_t digitCodes[] = {1, 0, 9, 8, 7, 6, 5, 4, 3, 2};
 
-uint8_t digit_codes[] = {1, 0, 9, 8, 7, 6, 5, 4, 3, 2};
-
-void Nixie::on_digit(uint8_t num)
+void Nixie::onDigit(uint8_t num)
 {
-    digitalWrite(DEC_A0_PIN, digit_values[num] & 0x01);
-    digitalWrite(DEC_A1_PIN, digit_values[num] >> 1 & 0x01);
-    digitalWrite(DEC_A2_PIN, digit_values[num] >> 2 & 0x01);
-    digitalWrite(DEC_A3_PIN, digit_values[num] >> 3 & 0x01);
+    digitalWrite(DEC_A0_PIN, digitValues[num] & 0x01);
+    digitalWrite(DEC_A1_PIN, digitValues[num] >> 1 & 0x01);
+    digitalWrite(DEC_A2_PIN, digitValues[num] >> 2 & 0x01);
+    digitalWrite(DEC_A3_PIN, digitValues[num] >> 3 & 0x01);
 
-    uint8_t l_pin = 1 << num;
-    digitalWrite(L1_PIN, l_pin & 0x01);
-    digitalWrite(L2_PIN, l_pin >> 1 & 0x01);
-    digitalWrite(L3_PIN, l_pin >> 2 & 0x01);
-    digitalWrite(L4_PIN, l_pin >> 3 & 0x01);
-    digitalWrite(L5_PIN, l_pin >> 4 & 0x01);
-    digitalWrite(L6_PIN, l_pin >> 5 & 0x01);
+    digitalWrite(LPins[num], HIGH);
 }
 
-void Nixie::off_digits()
+void Nixie::offDigit(uint8_t num)
 {
-    digitalWrite(L1_PIN, 0);
-    digitalWrite(L2_PIN, 0);
-    digitalWrite(L3_PIN, 0);
-    digitalWrite(L4_PIN, 0);
-    digitalWrite(L5_PIN, 0);
-    digitalWrite(L6_PIN, 0);
+    digitalWrite(LPins[num], LOW);
 }
 
 Nixie::Nixie()
 {
-    brightness = 1;
-    current = 0;
+    setBrightness(100);
 }
 
 void Nixie::begin()
@@ -50,41 +36,44 @@ void Nixie::begin()
     pinMode(L4_PIN, OUTPUT);
     pinMode(L5_PIN, OUTPUT);
     pinMode(L6_PIN, OUTPUT);
-
-    
 }
 
-void Nixie::set_brightness(uint8_t brightness)
+void Nixie::setBrightness(uint8_t brightness)
 {
     this->brightness = brightness;
+    this->onPeriod = ON_PERIOD_BRIGHTNES_RATIO * brightness;
+    this->offPeriod = REFRESH_PERIOD_IN_US - onPeriod;
 }
 
-void Nixie::set_digits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
+void Nixie::setDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
 {
-    digit_values[0] = digit_codes[dig1];
-    digit_values[1] = digit_codes[dig2];
-    digit_values[2] = digit_codes[dig3];
-    digit_values[3] = digit_codes[dig4];
-    digit_values[4] = digit_codes[dig5];
-    digit_values[5] = digit_codes[dig6];
+    digitValues[0] = digitCodes[dig1];
+    digitValues[1] = digitCodes[dig2];
+    digitValues[2] = digitCodes[dig3];
+    digitValues[3] = digitCodes[dig4];
+    digitValues[4] = digitCodes[dig5];
+    digitValues[5] = digitCodes[dig6];
 }
 
-void Nixie::refresh(void)
-{
-    if (ticks_count == 0)
-    {
-        on_digit(current);
-    }
-    else if (ticks_count == brightness)
-    {
-        off_digits();
-    }
+bool isOn = false;
+uint8_t current = 0;
+int64_t switchTime_us;
 
-    if (ticks_count == TICKS_COUNT_MAX)
+void Nixie::refresh()
+{
+    int64_t current_time = esp_timer_get_time();
+    if (isOn && current_time > switchTime_us + onPeriod)
     {
-        ticks_count = 0;
+        offDigit(current);
+        isOn = false;
         current = (current + 1) % DIGITS_SIZE;
+
+        switchTime_us = current_time;
     }
-    else
-        ticks_count++;
+    else if (!isOn && current_time > switchTime_us + offPeriod)
+    {
+        onDigit(current);
+        isOn = true;
+        switchTime_us = current_time;
+    }
 }

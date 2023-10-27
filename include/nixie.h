@@ -15,30 +15,37 @@
 #define L5_PIN 18
 #define L6_PIN 19
 
+#define REFRESH_PERIOD_IN_US 3000
+#define ON_PERIOD_BRIGHTNES_RATIO 29
+
 #define DIGITS_SIZE 6
+
+const uint8_t LPins[] = {L1_PIN, L2_PIN, L3_PIN, L4_PIN, L5_PIN, L6_PIN};
 
 class Nixie
 {
 private:
-    uint8_t digit_values[DIGITS_SIZE];
+    uint8_t digitValues[DIGITS_SIZE];
+    
     uint8_t brightness;
-    uint8_t current;
-    uint8_t ticks_count;
+    
+    uint16_t onPeriod;
+    uint16_t offPeriod;
 
-    void on_digit(uint8_t num);
+    void onDigit(uint8_t num);
 
-    void off_digits(void);
+    void offDigit(uint8_t num);
 
 public:
     Nixie();
 
     void begin();
 
-    void set_brightness(uint8_t brightness);
+    void refresh();
 
-    void set_digits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6);
+    void setBrightness(uint8_t brightness);
 
-    void refresh(void);
+    void setDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6);   
 };
 
 #endif
