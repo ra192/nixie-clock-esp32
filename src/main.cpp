@@ -176,7 +176,7 @@ void updateTime(void *params)
     RtcDateTime now = Rtc.GetDateTime();
     nixie.setDigits(now.Hour() / 10, now.Hour() % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
 
-    Serial.printf("Sync time: %s\r\n", syncTime);
+    Serial.printf("Sync time: %s\r\n", isSyncTime);
     Serial.printf("Timezone: %s\r\n", timeZone);
 
     vTaskDelay(1000 / portTICK_PERIOD_MS);
