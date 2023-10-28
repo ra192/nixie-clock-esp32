@@ -10,17 +10,17 @@ void Nixie::onDigit(uint8_t num)
     digitalWrite(DEC_A2_PIN, digitValues[num] >> 2 & 0x01);
     digitalWrite(DEC_A3_PIN, digitValues[num] >> 3 & 0x01);
 
-    digitalWrite(LPins[num], HIGH);
+    ledcWrite(PwmLChannels[num], brightness);
 }
 
 void Nixie::offDigit(uint8_t num)
 {
-    digitalWrite(LPins[num], LOW);
+    ledcWrite(PwmLChannels[num], 0);
 }
 
 Nixie::Nixie()
 {
-    setBrightness(100);
+    setBrightness(255);
 }
 
 void Nixie::begin()
@@ -30,19 +30,28 @@ void Nixie::begin()
     pinMode(DEC_A2_PIN, OUTPUT);
     pinMode(DEC_A3_PIN, OUTPUT);
 
-    pinMode(L1_PIN, OUTPUT);
-    pinMode(L2_PIN, OUTPUT);
-    pinMode(L3_PIN, OUTPUT);
-    pinMode(L4_PIN, OUTPUT);
-    pinMode(L5_PIN, OUTPUT);
-    pinMode(L6_PIN, OUTPUT);
+    ledcSetup(PWM_L1_CHANNEL, PWM_FREQ, PWM_RES);
+    ledcAttachPin(L1_PIN, PWM_L1_CHANNEL);
+
+    ledcSetup(PWM_L2_CHANNEL, PWM_FREQ, PWM_RES);
+    ledcAttachPin(L2_PIN, PWM_L2_CHANNEL);
+
+    ledcSetup(PWM_L3_CHANNEL, PWM_FREQ, PWM_RES);
+    ledcAttachPin(L3_PIN, PWM_L3_CHANNEL);
+
+    ledcSetup(PWM_L4_CHANNEL, PWM_FREQ, PWM_RES);
+    ledcAttachPin(L4_PIN, PWM_L4_CHANNEL);
+
+    ledcSetup(PWM_L5_CHANNEL, PWM_FREQ, PWM_RES);
+    ledcAttachPin(L5_PIN, PWM_L5_CHANNEL);
+
+    ledcSetup(PWM_L6_CHANNEL, PWM_FREQ, PWM_RES);
+    ledcAttachPin(L6_PIN, PWM_L6_CHANNEL);
 }
 
 void Nixie::setBrightness(uint8_t brightness)
 {
     this->brightness = brightness;
-    this->onPeriod = ON_PERIOD_BRIGHTNES_RATIO * brightness;
-    this->offPeriod = REFRESH_PERIOD_IN_US - onPeriod;
 }
 
 void Nixie::setDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
@@ -62,7 +71,7 @@ int64_t switchTime_us;
 void Nixie::refresh()
 {
     int64_t current_time = esp_timer_get_time();
-    if (isOn && current_time > switchTime_us + onPeriod)
+    if (isOn && current_time > switchTime_us + REFRESH_ON_PERIOD_IN_US)
     {
         offDigit(current);
         isOn = false;
@@ -70,7 +79,7 @@ void Nixie::refresh()
 
         switchTime_us = current_time;
     }
-    else if (!isOn && current_time > switchTime_us + offPeriod)
+    else if (!isOn && current_time > switchTime_us + REFRESH_OFF_PERIOD_IN_US)
     {
         onDigit(current);
         isOn = true;

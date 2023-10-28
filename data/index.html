@@ -18,7 +18,7 @@
         <form action="/save-wifi-creds" method="POST">
           <p>
             <label for="ssid">SSID</label>
-            <input type="text" id="ssid" name="ssid" /><br />
+            <input type="text" id="ssid" name="ssid" value="%SSID_TEMPLATE%"/><br />
             <label for="password">Password</label>
             <input type="text" id="password" name="password" /><br />
             <input type="submit" value="Submit" />
@@ -49,8 +49,8 @@
           <form action="/save-settings" method="POST">
             <p>
               <label for="brightness">Brightness</label>
-              <input type="number" id="brightness" name="brightness" value="%BRIGHTNESS_TEMPLATE%" min="1"
-                max="100" /><br />
+              <input type="number" id="brightness" name="brightness" value="%BRIGHTNESS_TEMPLATE%" min="127"
+                max="255" /><br />
               <input type="submit" value="Submit" />
             </p>
           </form>

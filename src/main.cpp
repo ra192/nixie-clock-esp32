@@ -38,6 +38,7 @@ Nixie nixie;
 uint8_t brightness;
 
 RtcDS3231<TwoWire> Rtc(Wire);
+RtcDateTime now;
 
 NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> strip(pixelCount, pixelPin);
 
@@ -88,10 +89,13 @@ void setupWifi()
 
 String processor(const String &var)
 {
+  if (var == "SSID_TEMPLATE")
+  {
+    return myPrefs.getString(SSID, "");
+  }
+
   if (var == "TIME_TEMPLATE")
   {
-    RtcDateTime now = Rtc.GetDateTime();
-
     char timeBuf[5];
     sprintf(timeBuf, "%02d:%02d", now.Hour(), now.Minute());
 
@@ -143,7 +147,6 @@ void setupWebserver()
     uint8_t hour = time.substring(0,delimInd).toInt();
     uint8_t minute = time.substring(delimInd+1).toInt();
 
-    RtcDateTime now = Rtc.GetDateTime();
     RtcDateTime updatedTime = RtcDateTime(now.Year(), now.Month(), now.Day(),hour, minute, now.Second());
 
     Rtc.SetDateTime(updatedTime);
@@ -153,16 +156,15 @@ void setupWebserver()
 
     timeZone = request->getParam(TIME_ZONE, true)->value().toInt();
     myPrefs.putInt(TIME_ZONE, timeZone);
-    timeClient.setTimeOffset(timeZone);
 
-    request->send(200, "text/plain", "Time saved"); });
+    request->redirect("/"); });
 
   server.on("/save-settings", HTTP_POST, [](AsyncWebServerRequest *request)
             { 
               brightness = request->getParam("brightness",true)->value().toInt();
               nixie.setBrightness(brightness);
               myPrefs.putUInt(BRIGHTNESS,brightness);
-              request->send(200, "text/plain", "Settings saved"); });
+              request->redirect("/"); });
 
   server.serveStatic("/", SPIFFS, "/").setTemplateProcessor(processor).setDefaultFile("index.html");
 
@@ -173,12 +175,35 @@ void updateTime(void *params)
 {
   for (;;)
   {
-    RtcDateTime now = Rtc.GetDateTime();
-    nixie.setDigits(now.Hour() / 10, now.Hour() % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+    now = Rtc.GetDateTime();
 
-    // Serial.printf("Sync time: %s\r\n", isSyncTime);
-    // Serial.printf("Timezone: %s\r\n", timeZone);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+  }
+}
 
+void updateNixie(void *params)
+{
+  uint8_t hourPlusOffset;
+  uint8_t localHour;
+
+  for (;;)
+  {
+    hourPlusOffset = now.Hour() + timeZone;
+
+    if (hourPlusOffset < 0)
+    {
+      localHour = 24 - hourPlusOffset;
+    }
+    else if (hourPlusOffset > 23)
+    {
+      localHour = hourPlusOffset - 24;
+    }
+    else
+    {
+      localHour = hourPlusOffset;
+    }
+
+    nixie.setDigits(localHour / 10, localHour % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
     vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
 }
@@ -214,7 +239,6 @@ void syncTime(void *params)
 
       if (timeClient.isTimeSet())
       {
-        RtcDateTime now = Rtc.GetDateTime();
         RtcDateTime updatedTime = RtcDateTime(now.Year(), now.Month(), timeClient.getDay(),
                                               timeClient.getHours(), timeClient.getMinutes(), timeClient.getSeconds());
         Rtc.SetDateTime(updatedTime);
@@ -238,18 +262,7 @@ void setup()
     return;
   }
 
-  brightness = myPrefs.getUInt(BRIGHTNESS, 100);
-  nixie.setBrightness(brightness);
-  nixie.begin();
-
   Rtc.Begin();
-
-  pinMode(DOT_1_PIN, OUTPUT);
-  pinMode(DOT_2_PIN, OUTPUT);
-
-  strip.Begin();
-  strip.ClearTo(red);
-  strip.Show();
 
   xTaskCreate(
       updateTime,    // Function that should be called
@@ -259,6 +272,26 @@ void setup()
       1,             // Task priority
       NULL           // Task handle
   );
+
+  brightness = myPrefs.getUInt(BRIGHTNESS, 255);
+  nixie.setBrightness(brightness);
+  nixie.begin();
+
+  xTaskCreate(
+      updateNixie,    // Function that should be called
+      "update nixie", // Name of the task (for debugging)
+      1024,          // Stack size (bytes)
+      NULL,          // Parameter to pass
+      1,             // Task priority
+      NULL           // Task handle
+  );
+
+  strip.Begin();
+  strip.ClearTo(red);
+  strip.Show();
+
+  pinMode(DOT_1_PIN, OUTPUT);
+  pinMode(DOT_2_PIN, OUTPUT);
 
   xTaskCreate(
       toggleDots,    // Function that should be called
@@ -276,7 +309,6 @@ void setup()
   {
     isSyncTime = myPrefs.getInt(SYNC_TIME, 1);
     timeZone = myPrefs.getInt(TIME_ZONE);
-    timeClient.setTimeOffset(timeZone);
     timeClient.begin();
 
     xTaskCreate(
@@ -284,7 +316,7 @@ void setup()
         "sync time", // Name of the task (for debugging)
         2048,        // Stack size (bytes)
         NULL,        // Parameter to pass
-        1,           // Task priority
+        2,           // Task priority
         NULL         // Task handle
     );
   }
