@@ -16,7 +16,7 @@
 #define SSID "ssid"
 #define PASSWORD "password"
 
-#define BRIGHTNESS "brightness"
+#define NIXIE_BRIGHTNESS "nixie_brightness"
 
 #define SYNC_TIME "sync_time"
 #define TIME_ZONE "time_zone"
@@ -26,6 +26,7 @@
 
 #define LED_COUNT 6
 #define LED_PIN 27
+#define LED_BRIGHTNESS "led_brightness"
 
 #define colorSaturation 128
 
@@ -34,12 +35,13 @@ Preferences myPrefs;
 AsyncWebServer server(80);
 
 Nixie nixie;
-uint8_t brightness;
+uint8_t nixie_brightness;
 
 RtcDS3231<TwoWire> Rtc(Wire);
 RtcDateTime now;
 
 CRGB leds[LED_COUNT];
+uint8_t led_brightness;
 
 uint8_t isSyncTime;
 String timeZone;
@@ -103,9 +105,14 @@ String processor(const String &var)
     return timeZone;
   }
 
-  if (var == "BRIGHTNESS_TEMPLATE")
+  if (var == "NIXIE_BRIGHTNESS_TEMPLATE")
   {
-    return String(brightness);
+    return String(nixie_brightness);
+  }
+
+  if (var == "LED_BRIGHTNESS_TEMPLATE")
+  {
+    return String(led_brightness);
   }
 
   return String();
@@ -154,9 +161,14 @@ void setupWebserver()
 
   server.on("/save-settings", HTTP_POST, [](AsyncWebServerRequest *request)
             { 
-              brightness = request->getParam("brightness",true)->value().toInt();
-              nixie.setBrightness(brightness);
-              myPrefs.putUInt(BRIGHTNESS,brightness);
+              nixie_brightness = request->getParam(NIXIE_BRIGHTNESS,true)->value().toInt();
+              nixie.setBrightness(nixie_brightness);
+              myPrefs.putUInt(NIXIE_BRIGHTNESS,nixie_brightness);
+
+              led_brightness = request->getParam(LED_BRIGHTNESS,true)->value().toInt();
+              FastLED.setBrightness(led_brightness);
+              myPrefs.putUInt(LED_BRIGHTNESS,led_brightness);
+
               request->redirect("/"); });
 
   server.serveStatic("/", SPIFFS, "/").setTemplateProcessor(processor).setDefaultFile("index.html");
@@ -249,49 +261,24 @@ void setup()
 
   Rtc.Begin();
 
-  xTaskCreate(
-      updateTimeTask, // Function that should be called
-      "update time",  // Name of the task (for debugging)
-      2048,           // Stack size (bytes)
-      NULL,           // Parameter to pass
-      1,              // Task priority
-      NULL            // Task handle
-  );
+  xTaskCreate(updateTimeTask, "update time", 2048, NULL, 1, NULL);
 
-  brightness = myPrefs.getUInt(BRIGHTNESS, 255);
-  nixie.setBrightness(brightness);
+  nixie_brightness = myPrefs.getUInt(NIXIE_BRIGHTNESS, 255);
+  nixie.setBrightness(nixie_brightness);
   nixie.begin();
 
-  xTaskCreate(
-      updateNixieTask, // Function that should be called
-      "update nixie",  // Name of the task (for debugging)
-      1024,            // Stack size (bytes)
-      NULL,            // Parameter to pass
-      1,               // Task priority
-      NULL             // Task handle
-  );
+  xTaskCreate(updateNixieTask, "update nixie", 1024, NULL, 1, NULL);
 
   FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, LED_COUNT);
+  led_brightness = myPrefs.getUInt(LED_BRIGHTNESS, 128);
+  FastLED.setBrightness(led_brightness);
 
-  xTaskCreate(
-      updateLedsTask,
-      "update leds",
-      1024,
-      NULL,
-      2,
-      NULL);
+  xTaskCreate(updateLedsTask, "update leds", 1024, NULL, 4, NULL);
 
   pinMode(DOT_1_PIN, OUTPUT);
   pinMode(DOT_2_PIN, OUTPUT);
 
-  xTaskCreate(
-      toggleDotsTask, // Function that should be called
-      "toggle dots",  // Name of the task (for debugging)
-      1024,           // Stack size (bytes)
-      NULL,           // Parameter to pass
-      1,              // Task priority
-      NULL            // Task handle
-  );
+  xTaskCreate(toggleDotsTask, "toggle dots", 1024, NULL, 1, NULL);
 
   setupWifi();
   setupWebserver();
@@ -303,18 +290,10 @@ void setup()
 
     configTzTime(timeZone.c_str(), "pool.ntp.org");
 
-    xTaskCreate(
-        syncTimeTask, // Function that should be called
-        "sync time",  // Name of the task (for debugging)
-        2048,         // Stack size (bytes)
-        NULL,         // Parameter to pass
-        1,            // Task priority
-        NULL          // Task handle
-    );
+    xTaskCreate(syncTimeTask, "sync time", 2048, NULL, 1, NULL);
   }
 }
 
 void loop()
 {
-  nixie.refresh();
 }

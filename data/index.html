@@ -46,8 +46,11 @@
         <div class="card">
           <form action="/save-settings" method="POST">
             <p>
-              <label for="brightness">Brightness</label>
-              <input type="number" id="brightness" name="brightness" value="%BRIGHTNESS_TEMPLATE%" min="127"
+              <label for="nixie_brightness">Nixie brightness</label>
+              <input type="number" id="nixie_brightness" name="nixie_brightness" value="%NIXIE_BRIGHTNESS_TEMPLATE%" min="63"
+                max="255" /><br />
+                <label for="led_brightness">Led brightness</label>
+              <input type="number" id="led_brightness" name="led_brightness" value="%LED_BRIGHTNESS_TEMPLATE%"
                 max="255" /><br />
               <input type="submit" value="Submit" />
             </p>
@@ -56,5 +59,4 @@
       </div>
     </div>
 </body>
-
 </html>

@@ -47,6 +47,8 @@ void Nixie::begin()
 
     ledcSetup(PWM_L6_CHANNEL, PWM_FREQ, PWM_RES);
     ledcAttachPin(L6_PIN, PWM_L6_CHANNEL);
+
+    xTaskCreate(refreshTask, "refresh nixie", 1024, this, configMAX_PRIORITIES - 1, NULL);
 }
 
 void Nixie::setBrightness(uint8_t brightness)
@@ -64,25 +66,28 @@ void Nixie::setDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, ui
     digitValues[5] = digitCodes[dig6];
 }
 
-bool isOn = false;
-uint8_t current = 0;
-int64_t switchTime_us;
-void Nixie::refresh()
+void Nixie::refreshTask(void *params)
 {
+    Nixie *nixie = (Nixie *)params;
+    bool isOn = false;
+    uint8_t current = 4;
 
-    int64_t current_time = esp_timer_get_time();
-    if (isOn && current_time > switchTime_us + REFRESH_ON_PERIOD_IN_US)
-    {
-        offDigit(current);
-        isOn = false;
-        current = (current + 1) % DIGITS_SIZE;
+    TickType_t xLastWakeTime = xTaskGetTickCount();
 
-        switchTime_us = current_time;
-    }
-    else if (!isOn && current_time > switchTime_us + REFRESH_OFF_PERIOD_IN_US)
+    for (;;)
     {
-        onDigit(current);
-        isOn = true;
-        switchTime_us = current_time;
+        if (isOn)
+        {
+            nixie->offDigit(current);
+            isOn = false;
+            current = (current + 1) % DIGITS_SIZE;
+            vTaskDelayUntil(&xLastWakeTime, 1);
+        }
+        else if (!isOn)
+        {
+            nixie->onDigit(current);
+            isOn = true;
+            vTaskDelayUntil(&xLastWakeTime, 2);
+        }
     }
 }

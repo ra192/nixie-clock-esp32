@@ -15,9 +15,6 @@
 #define L5_PIN 18
 #define L6_PIN 19
 
-#define REFRESH_ON_PERIOD_IN_US 1900
-#define REFRESH_OFF_PERIOD_IN_US 100
-
 #define DIGITS_SIZE 6
 
 #define PWM_L1_CHANNEL 0
@@ -44,12 +41,12 @@ private:
 
     void offDigit(uint8_t num);
 
+    static void refreshTask(void *params);
+
 public:
     Nixie();
 
     void begin();
-
-    void refresh();
 
     void setBrightness(uint8_t brightness);
 
