@@ -67,9 +67,9 @@ void Nixie::setDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, ui
 bool isOn = false;
 uint8_t current = 0;
 int64_t switchTime_us;
-
 void Nixie::refresh()
 {
+
     int64_t current_time = esp_timer_get_time();
     if (isOn && current_time > switchTime_us + REFRESH_ON_PERIOD_IN_US)
     {

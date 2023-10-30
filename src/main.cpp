@@ -6,13 +6,12 @@
 #include "Preferences.h"
 
 #include <nixie.h>
-#include <NeoPixelBus.h>
+#include <FastLED.h>
+
+#include "time.h"
 
 #include <Wire.h> // must be included here so that Arduino library object file references work
 #include <RtcDS3231.h>
-
-#include <WiFiUdp.h>
-#include <NTPClient.h>
 
 #define SSID "ssid"
 #define PASSWORD "password"
@@ -25,8 +24,8 @@
 #define DOT_1_PIN 2
 #define DOT_2_PIN 23
 
-#define pixelCount 6
-#define pixelPin 27
+#define LED_COUNT 6
+#define LED_PIN 27
 
 #define colorSaturation 128
 
@@ -40,18 +39,10 @@ uint8_t brightness;
 RtcDS3231<TwoWire> Rtc(Wire);
 RtcDateTime now;
 
-NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> strip(pixelCount, pixelPin);
+CRGB leds[LED_COUNT];
 
-RgbColor red(colorSaturation, 0, 0);
-RgbColor green(0, colorSaturation, 0);
-RgbColor blue(0, 0, colorSaturation);
-RgbColor white(colorSaturation);
-RgbColor black(0);
-
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP);
 uint8_t isSyncTime;
-int timeZone;
+String timeZone;
 
 void startAP()
 {
@@ -109,7 +100,7 @@ String processor(const String &var)
 
   if (var == "TIME_ZONE_TEMPLATE")
   {
-    return String(timeZone);
+    return timeZone;
   }
 
   if (var == "BRIGHTNESS_TEMPLATE")
@@ -155,7 +146,7 @@ void setupWebserver()
     myPrefs.putInt(SYNC_TIME, isSyncTime);
 
     timeZone = request->getParam(TIME_ZONE, true)->value().toInt();
-    myPrefs.putInt(TIME_ZONE, timeZone);
+    myPrefs.putString(TIME_ZONE, timeZone);
 
     request->redirect("/"); });
 
@@ -171,44 +162,26 @@ void setupWebserver()
   server.begin();
 }
 
-void updateTime(void *params)
+void updateTimeTask(void *params)
 {
   for (;;)
   {
     now = Rtc.GetDateTime();
-
     vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
 }
 
-void updateNixie(void *params)
+void updateNixieTask(void *params)
 {
-  uint8_t hourPlusOffset;
-  uint8_t localHour;
-
+  uint8_t count;
   for (;;)
   {
-    hourPlusOffset = now.Hour() + timeZone;
-
-    if (hourPlusOffset < 0)
-    {
-      localHour = 24 - hourPlusOffset;
-    }
-    else if (hourPlusOffset > 23)
-    {
-      localHour = hourPlusOffset - 24;
-    }
-    else
-    {
-      localHour = hourPlusOffset;
-    }
-
-    nixie.setDigits(localHour / 10, localHour % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+    nixie.setDigits(now.Hour() / 10, now.Hour() % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
     vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
 }
 
-void toggleDots(void *params)
+void toggleDotsTask(void *params)
 {
   boolean isOn = 0;
   for (;;)
@@ -229,18 +202,26 @@ void toggleDots(void *params)
   }
 }
 
-void syncTime(void *params)
+void updateLedsTask(void *args)
+{
+  for (;;)
+  {
+    FastLED.showColor(CRGB::Red);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+  }
+}
+
+void syncTimeTask(void *params)
 {
   for (;;)
   {
     if (isSyncTime)
     {
-      timeClient.update();
+      struct tm timeinfo;
 
-      if (timeClient.isTimeSet())
+      if (getLocalTime(&timeinfo))
       {
-        RtcDateTime updatedTime = RtcDateTime(now.Year(), now.Month(), timeClient.getDay(),
-                                              timeClient.getHours(), timeClient.getMinutes(), timeClient.getSeconds());
+        RtcDateTime updatedTime = RtcDateTime(timeinfo.tm_year, timeinfo.tm_mon, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
         Rtc.SetDateTime(updatedTime);
       }
     }
@@ -265,12 +246,12 @@ void setup()
   Rtc.Begin();
 
   xTaskCreate(
-      updateTime,    // Function that should be called
-      "update time", // Name of the task (for debugging)
-      2048,          // Stack size (bytes)
-      NULL,          // Parameter to pass
-      1,             // Task priority
-      NULL           // Task handle
+      updateTimeTask, // Function that should be called
+      "update time",  // Name of the task (for debugging)
+      2048,           // Stack size (bytes)
+      NULL,           // Parameter to pass
+      1,              // Task priority
+      NULL            // Task handle
   );
 
   brightness = myPrefs.getUInt(BRIGHTNESS, 255);
@@ -278,28 +259,34 @@ void setup()
   nixie.begin();
 
   xTaskCreate(
-      updateNixie,    // Function that should be called
-      "update nixie", // Name of the task (for debugging)
-      1024,          // Stack size (bytes)
-      NULL,          // Parameter to pass
-      1,             // Task priority
-      NULL           // Task handle
+      updateNixieTask, // Function that should be called
+      "update nixie",  // Name of the task (for debugging)
+      1024,            // Stack size (bytes)
+      NULL,            // Parameter to pass
+      1,               // Task priority
+      NULL             // Task handle
   );
 
-  strip.Begin();
-  strip.ClearTo(red);
-  strip.Show();
+  FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, LED_COUNT);
+
+  xTaskCreate(
+      updateLedsTask,
+      "update leds",
+      1024,
+      NULL,
+      2,
+      NULL);
 
   pinMode(DOT_1_PIN, OUTPUT);
   pinMode(DOT_2_PIN, OUTPUT);
 
   xTaskCreate(
-      toggleDots,    // Function that should be called
-      "toggle dots", // Name of the task (for debugging)
-      1024,          // Stack size (bytes)
-      NULL,          // Parameter to pass
-      1,             // Task priority
-      NULL           // Task handle
+      toggleDotsTask, // Function that should be called
+      "toggle dots",  // Name of the task (for debugging)
+      1024,           // Stack size (bytes)
+      NULL,           // Parameter to pass
+      1,              // Task priority
+      NULL            // Task handle
   );
 
   setupWifi();
@@ -308,16 +295,17 @@ void setup()
   if (WiFi.isConnected())
   {
     isSyncTime = myPrefs.getInt(SYNC_TIME, 1);
-    timeZone = myPrefs.getInt(TIME_ZONE);
-    timeClient.begin();
+    timeZone = myPrefs.getString(TIME_ZONE, "Etc/GMT");
+
+    configTzTime(timeZone.c_str(), "pool.ntp.org");
 
     xTaskCreate(
-        syncTime,    // Function that should be called
-        "sync time", // Name of the task (for debugging)
-        2048,        // Stack size (bytes)
-        NULL,        // Parameter to pass
-        2,           // Task priority
-        NULL         // Task handle
+        syncTimeTask, // Function that should be called
+        "sync time",  // Name of the task (for debugging)
+        2048,         // Stack size (bytes)
+        NULL,         // Parameter to pass
+        1,            // Task priority
+        NULL          // Task handle
     );
   }
 }
