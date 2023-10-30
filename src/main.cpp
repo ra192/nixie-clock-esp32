@@ -145,8 +145,10 @@ void setupWebserver()
     isSyncTime = request->getParam(SYNC_TIME, true)->value().toInt();
     myPrefs.putInt(SYNC_TIME, isSyncTime);
 
-    timeZone = request->getParam(TIME_ZONE, true)->value().toInt();
+    timeZone = request->getParam(TIME_ZONE, true)->value();
     myPrefs.putString(TIME_ZONE, timeZone);
+
+    configTzTime(timeZone.c_str(), "pool.ntp.org");
 
     request->redirect("/"); });
 
@@ -218,6 +220,8 @@ void syncTimeTask(void *params)
     if (isSyncTime)
     {
       struct tm timeinfo;
+
+      Serial.println(timeZone);
 
       if (getLocalTime(&timeinfo))
       {
