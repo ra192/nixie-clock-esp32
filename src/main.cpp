@@ -1,6 +1,9 @@
 #include <Arduino.h>
+
 #include <AsyncTCP.h>
 #include "ESPAsyncWebServer.h"
+#include "AsyncJson.h"
+#include "ArduinoJson.h"
 
 #include "SPIFFS.h"
 #include "Preferences.h"
@@ -35,15 +38,15 @@ Preferences myPrefs;
 AsyncWebServer server(80);
 
 Nixie nixie;
-uint8_t nixie_brightness;
+uint8_t nixieBrightness;
 
 RtcDS3231<TwoWire> Rtc(Wire);
 RtcDateTime now;
 
 CRGB leds[LED_COUNT];
-uint8_t led_brightness;
+uint8_t ledBrightness;
 
-uint8_t isSyncTime;
+int isSyncTime;
 String timeZone;
 
 void startAP()
@@ -80,46 +83,24 @@ void setupWifi()
   }
 }
 
-String processor(const String &var)
-{
-  if (var == "SSID_TEMPLATE")
-  {
-    return myPrefs.getString(SSID, "");
-  }
-
-  if (var == "TIME_TEMPLATE")
-  {
-    char timeBuf[5];
-    sprintf(timeBuf, "%02d:%02d", now.Hour(), now.Minute());
-
-    return String(timeBuf);
-  }
-
-  if (var == "SYNC_TIME_TEMPLATE")
-  {
-    return String(isSyncTime);
-  }
-
-  if (var == "TIME_ZONE_TEMPLATE")
-  {
-    return timeZone;
-  }
-
-  if (var == "NIXIE_BRIGHTNESS_TEMPLATE")
-  {
-    return String(nixie_brightness);
-  }
-
-  if (var == "LED_BRIGHTNESS_TEMPLATE")
-  {
-    return String(led_brightness);
-  }
-
-  return String();
-}
-
 void setupWebserver()
 {
+  server.on("/get-settings", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+      StaticJsonDocument<128> doc;
+      
+      doc[SSID] = myPrefs.getString(SSID);
+      doc[SYNC_TIME]=isSyncTime;
+      doc[TIME_ZONE]=timeZone;
+      doc[NIXIE_BRIGHTNESS]=nixieBrightness;
+      doc[LED_BRIGHTNESS]=ledBrightness;
+
+
+      String jsonStr;
+      serializeJson(doc,jsonStr);
+      
+      request->send(200,"application/json", jsonStr); });
+
   server.on("/save-wifi-creds", HTTP_POST, [](AsyncWebServerRequest *request)
             {
       Serial.println("save wifi creds called");
@@ -161,17 +142,17 @@ void setupWebserver()
 
   server.on("/save-settings", HTTP_POST, [](AsyncWebServerRequest *request)
             { 
-              nixie_brightness = request->getParam(NIXIE_BRIGHTNESS,true)->value().toInt();
-              nixie.setBrightness(nixie_brightness);
-              myPrefs.putUInt(NIXIE_BRIGHTNESS,nixie_brightness);
+              nixieBrightness = request->getParam(NIXIE_BRIGHTNESS,true)->value().toInt();
+              nixie.setBrightness(nixieBrightness);
+              myPrefs.putUInt(NIXIE_BRIGHTNESS,nixieBrightness);
 
-              led_brightness = request->getParam(LED_BRIGHTNESS,true)->value().toInt();
-              FastLED.setBrightness(led_brightness);
-              myPrefs.putUInt(LED_BRIGHTNESS,led_brightness);
+              ledBrightness = request->getParam(LED_BRIGHTNESS,true)->value().toInt();
+              FastLED.setBrightness(ledBrightness);
+              myPrefs.putUInt(LED_BRIGHTNESS,ledBrightness);
 
               request->redirect("/"); });
 
-  server.serveStatic("/", SPIFFS, "/").setTemplateProcessor(processor).setDefaultFile("index.html");
+  server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
 
   server.begin();
 }
@@ -263,15 +244,15 @@ void setup()
 
   xTaskCreate(updateTimeTask, "update time", 2048, NULL, 1, NULL);
 
-  nixie_brightness = myPrefs.getUInt(NIXIE_BRIGHTNESS, 255);
-  nixie.setBrightness(nixie_brightness);
+  nixieBrightness = myPrefs.getUInt(NIXIE_BRIGHTNESS, 255);
+  nixie.setBrightness(nixieBrightness);
   nixie.begin();
 
   xTaskCreate(updateNixieTask, "update nixie", 1024, NULL, 1, NULL);
 
   FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, LED_COUNT);
-  led_brightness = myPrefs.getUInt(LED_BRIGHTNESS, 128);
-  FastLED.setBrightness(led_brightness);
+  ledBrightness = myPrefs.getUInt(LED_BRIGHTNESS, 128);
+  FastLED.setBrightness(ledBrightness);
 
   xTaskCreate(updateLedsTask, "update leds", 1024, NULL, 4, NULL);
 

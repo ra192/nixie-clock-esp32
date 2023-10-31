@@ -2,7 +2,7 @@
 <html>
 
 <head>
-  <title>ESP Wi-Fi Manager</title>
+  <title>Pulsar nixie clock</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" type="text/css" href="style.css">
@@ -10,7 +10,7 @@
 
 <body>
   <div class="topnav">
-    <h1>ESP Wi-Fi Manager</h1>
+    <h1>Pulsar nixie clock</h1>
   </div>
   <div class="content">
     <div class="card-grid">
@@ -18,45 +18,52 @@
         <form action="/save-wifi-creds" method="POST">
           <p>
             <label for="ssid">SSID</label>
-            <input type="text" id="ssid" name="ssid" value="%SSID_TEMPLATE%"/><br />
+            <input type="text" id="ssid" name="ssid" /><br />
             <label for="password">Password</label>
             <input type="text" id="password" name="password" /><br />
             <input type="submit" value="Submit" />
           </p>
         </form>
-        <div class="card">
-          <form action="/save-time" method="POST">
-            <p>
-              <label for="time">Time</label>
-              <input type="time" id="time" name="time" value="%TIME_TEMPLATE%" /><br />
-              <label for="sync_time">Sync time</label>
-              <select id="sync_time" name="sync_time">
-                <option value="1">on</option>
-                <option value="0">off</option>
-              </select><br />
-              <label for="time_zone">Time zone</label>
-              <select id="time_zone" name="time_zone">
-                <option value="EET-2EEST,M3.5.0/3,M10.5.0/4">Europe/Kiev</option>
-                <option value="GMT0BST,M3.5.0/1,M10.5.0">Europe/London</option>
-              </select><br />
-              <input type="submit" value="Submit" />
-            </p>
-          </form>
-        </div>
-        <div class="card">
-          <form action="/save-settings" method="POST">
-            <p>
-              <label for="nixie_brightness">Nixie brightness</label>
-              <input type="number" id="nixie_brightness" name="nixie_brightness" value="%NIXIE_BRIGHTNESS_TEMPLATE%" min="63"
-                max="255" /><br />
-                <label for="led_brightness">Led brightness</label>
-              <input type="number" id="led_brightness" name="led_brightness" value="%LED_BRIGHTNESS_TEMPLATE%"
-                max="255" /><br />
-              <input type="submit" value="Submit" />
-            </p>
-          </form>
-        </div>
+      </div>
+      <div class="card">
+        <form action="/save-time" method="POST">
+          <p>
+            <label for="time">Time</label>
+            <input type="time" id="time" name="time" /><br />
+            <label for="sync_time">Sync time</label>
+            <select id="sync_time" name="sync_time">
+              <option value="1">on</option>
+              <option value="0">off</option>
+            </select><br />
+            <label for="time_zone">Time zone</label>
+            <select id="time_zone" name="time_zone">
+              <option value="EET-2EEST,M3.5.0/3,M10.5.0/4">Europe/Kiev</option>
+              <option value="GMT0BST,M3.5.0/1,M10.5.0">Europe/London</option>
+            </select><br />
+            <input type="submit" value="Submit" />
+          </p>
+        </form>
+      </div>
+      <div class="card">
+        <form action="/save-settings" method="POST">
+          <p>
+            <label for="nixie_brightness">Nixie brightness</label>
+            <input type="number" id="nixie_brightness" name="nixie_brightness" min="63" max="255" /><br />
+            <label for="led_brightness">Led brightness</label>
+            <input type="number" id="led_brightness" name="led_brightness" max="255" /><br />
+            <input type="submit" value="Submit" />
+          </p>
+        </form>
       </div>
     </div>
+  </div>
+  <script>
+    fetch('/get-settings').then(response => response.json()).then(data => {
+      document.getElementById('ssid').value = data['ssid'];
+      document.getElementById('nixie_brightness').value = data['nixie_brightness'];
+      document.getElementById('led_brightness').value = data['led_brightness'];
+    });
+  </script>
 </body>
+
 </html>
