@@ -27,6 +27,12 @@
 #define PWM_FREQ 10000
 #define PWM_RES 8
 
+#define NIXIE_ON_DELAY 2
+#define NIXIE_OFF_DELAY 1
+#define NIXIE_TOTAL_DELAY (NIXIE_ON_DELAY + NIXIE_OFF_DELAY)
+
+#define EMPTY_DIGIT 10
+
 const uint8_t LPins[] = {L1_PIN, L2_PIN, L3_PIN, L4_PIN, L5_PIN, L6_PIN};
 const uint8_t PwmLChannels[] = {PWM_L1_CHANNEL, PWM_L2_CHANNEL, PWM_L3_CHANNEL, PWM_L4_CHANNEL, PWM_L5_CHANNEL, PWM_L6_CHANNEL};
 
@@ -51,6 +57,8 @@ public:
     void setBrightness(uint8_t brightness);
 
     void setDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6);
+
+    void setDigits(uint8_t * digs, uint8_t startInd);
 };
 
 #endif

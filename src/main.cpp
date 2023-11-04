@@ -166,13 +166,89 @@ void updateTimeTask(void *params)
   }
 }
 
+uint8_t shiftDigits[12];
+uint8_t shiftInd;
+
+void setShiftTimeAndDate()
+{
+  shiftDigits[0] = now.Hour() / 10;
+  shiftDigits[1] = now.Hour() % 10;
+  shiftDigits[2] = now.Minute() / 10;
+  shiftDigits[3] = now.Minute() % 10;
+  shiftDigits[4] = now.Second() / 10;
+  shiftDigits[5] = now.Second() % 10;
+  shiftDigits[6] = EMPTY_DIGIT;
+  shiftDigits[7] = now.Day() / 10;
+  shiftDigits[8] = now.Day() % 10;
+  shiftDigits[9] = now.Month() / 10;
+  shiftDigits[10] = now.Month() % 10;
+  uint8_t yy = now.Year() % 100;
+  shiftDigits[11] = yy / 10;
+  shiftDigits[12] = yy % 10;
+}
+
+void shiftLeft(bool &end)
+{
+  nixie.setDigits(shiftDigits, shiftInd);
+  if (shiftInd <= DIGITS_SIZE)
+  {
+    shiftInd++;
+  }
+  else
+  {
+    end = false;
+  }
+  vTaskDelay(100);
+}
+
+void shiftRight(bool &end)
+{
+  nixie.setDigits(shiftDigits, shiftInd);
+  if (shiftInd > 0)
+  {
+    shiftInd--;
+  }
+  else
+  {
+    end = false;
+  }
+  vTaskDelay(100);
+}
+
 void updateNixieTask(void *params)
 {
-  uint8_t count;
+  bool shiftDate = false;
+  bool shiftTime = false;
+
   for (;;)
   {
-    nixie.setDigits(now.Hour() / 10, now.Hour() % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    if (now.Second() % 10 == 0 && !shiftDate)
+    {
+      shiftDate = true;
+      setShiftTimeAndDate();
+      shiftInd = 1;
+    }
+    else if (shiftDate)
+    {
+      shiftLeft(shiftDate);
+
+      if (!shiftDate)
+      {
+        shiftTime = true;
+        setShiftTimeAndDate();
+        shiftInd = 6;
+        vTaskDelay(2000);
+      }
+    }
+    else if (shiftTime)
+    {
+      shiftRight(shiftTime);
+    }
+    else
+    {
+      nixie.setDigits(now.Hour() / 10, now.Hour() % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+      vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
   }
 }
 
@@ -214,11 +290,9 @@ void syncTimeTask(void *params)
     {
       struct tm timeinfo;
 
-      Serial.println(timeZone);
-
       if (getLocalTime(&timeinfo))
       {
-        RtcDateTime updatedTime = RtcDateTime(timeinfo.tm_year, timeinfo.tm_mon, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+        RtcDateTime updatedTime = RtcDateTime(timeinfo.tm_year % 100, timeinfo.tm_mon + 1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
         Rtc.SetDateTime(updatedTime);
       }
     }

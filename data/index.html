@@ -60,6 +60,8 @@
   <script>
     fetch('/get-settings').then(response => response.json()).then(data => {
       document.getElementById('ssid').value = data['ssid'];
+      document.getElementById('sync_time').value = data['sync_time'];
+      document.getElementById('time_zone').value = data['time_zone'];
       document.getElementById('nixie_brightness').value = data['nixie_brightness'];
       document.getElementById('led_brightness').value = data['led_brightness'];
     });

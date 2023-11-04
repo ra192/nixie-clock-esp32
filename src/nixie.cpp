@@ -1,7 +1,7 @@
 #include <nixie.h>
 #include <Arduino.h>
 
-const uint8_t digitCodes[] = {1, 0, 9, 8, 7, 6, 5, 4, 3, 2};
+const uint8_t digitCodes[] = {1, 0, 9, 8, 7, 6, 5, 4, 3, 2, EMPTY_DIGIT};
 
 void Nixie::onDigit(uint8_t num)
 {
@@ -66,6 +66,16 @@ void Nixie::setDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, ui
     digitValues[5] = digitCodes[dig6];
 }
 
+void Nixie::setDigits(uint8_t *digs, uint8_t startInd)
+{
+    digitValues[0] = digitCodes[digs[startInd]];
+    digitValues[1] = digitCodes[digs[startInd + 1]];
+    digitValues[2] = digitCodes[digs[startInd + 2]];
+    digitValues[3] = digitCodes[digs[startInd + 3]];
+    digitValues[4] = digitCodes[digs[startInd + 4]];
+    digitValues[5] = digitCodes[digs[startInd + 5]];
+}
+
 void Nixie::refreshTask(void *params)
 {
     Nixie *nixie = (Nixie *)params;
@@ -81,13 +91,19 @@ void Nixie::refreshTask(void *params)
             nixie->offDigit(current);
             isOn = false;
             current = (current + 1) % DIGITS_SIZE;
-            vTaskDelayUntil(&xLastWakeTime, 1);
+            vTaskDelayUntil(&xLastWakeTime, NIXIE_OFF_DELAY);
         }
-        else if (!isOn)
+        else if (nixie->digitValues[current] == EMPTY_DIGIT)
+        {
+            nixie->offDigit(current);
+            current = (current + 1) % DIGITS_SIZE;
+            vTaskDelayUntil(&xLastWakeTime, NIXIE_TOTAL_DELAY);
+        }
+        else
         {
             nixie->onDigit(current);
             isOn = true;
-            vTaskDelayUntil(&xLastWakeTime, 2);
+            vTaskDelayUntil(&xLastWakeTime, NIXIE_ON_DELAY);
         }
     }
 }
