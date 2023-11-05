@@ -51,6 +51,12 @@
             <input type="number" id="nixie_brightness" name="nixie_brightness" min="63" max="255" /><br />
             <label for="led_brightness">Led brightness</label>
             <input type="number" id="led_brightness" name="led_brightness" max="255" /><br />
+            <label for="display_mode">Display mode</label>
+            <select id="display_mode" name="display_mode">
+              <option value="0">Time</option>
+              <option value="1">Time and date</option>
+              <option value="2">Time, date and temperature</option>
+            </select>
             <input type="submit" value="Submit" />
           </p>
         </form>
@@ -64,6 +70,7 @@
       document.getElementById('time_zone').value = data['time_zone'];
       document.getElementById('nixie_brightness').value = data['nixie_brightness'];
       document.getElementById('led_brightness').value = data['led_brightness'];
+      document.getElementById('display_mode').value = data['display_mode'];
     });
   </script>
 </body>

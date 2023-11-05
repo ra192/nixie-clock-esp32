@@ -21,8 +21,6 @@
 
 #define NIXIE_BRIGHTNESS "nixie_brightness"
 
-#define SHIFT_DELAY_MS 100
-
 #define SYNC_TIME "sync_time"
 #define TIME_ZONE "time_zone"
 
@@ -33,7 +31,11 @@
 #define LED_PIN 27
 #define LED_BRIGHTNESS "led_brightness"
 
-#define colorSaturation 128
+#define DISPLAY_MODE "display_mode"
+
+#define TIME_DISP_MODE 0
+#define TIME_DATE_DISP_MODE 1
+#define TIME_DATE_TEMP_DISP_MODE 2
 
 Preferences myPrefs;
 
@@ -51,6 +53,8 @@ uint8_t ledBrightness;
 
 int isSyncTime;
 String timeZone;
+
+uint8_t displayMode;
 
 void startAP()
 {
@@ -90,14 +94,14 @@ void setupWebserver()
 {
   server.on("/get-settings", HTTP_GET, [](AsyncWebServerRequest *request)
             {
-      StaticJsonDocument<128> doc;
+      StaticJsonDocument<256> doc;
       
       doc[SSID] = myPrefs.getString(SSID);
       doc[SYNC_TIME]=isSyncTime;
       doc[TIME_ZONE]=timeZone;
       doc[NIXIE_BRIGHTNESS]=nixieBrightness;
       doc[LED_BRIGHTNESS]=ledBrightness;
-
+      doc[DISPLAY_MODE]=displayMode;
 
       String jsonStr;
       serializeJson(doc,jsonStr);
@@ -153,6 +157,9 @@ void setupWebserver()
               FastLED.setBrightness(ledBrightness);
               myPrefs.putUInt(LED_BRIGHTNESS,ledBrightness);
 
+              displayMode = request->getParam(DISPLAY_MODE,true)->value().toInt();
+              myPrefs.putUInt(DISPLAY_MODE, displayMode);
+
               request->redirect("/"); });
 
   server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
@@ -200,10 +207,10 @@ void setShiftDateAndTemp()
   shiftDigits[5] = yy % 10;
   shiftDigits[6] = EMPTY_DIGIT;
   shiftDigits[7] = EMPTY_DIGIT;
-  shiftDigits[8] = EMPTY_DIGIT;
-  shiftDigits[9] = temperature.AsCentiDegC() / 10;
-  shiftDigits[10] = temperature.AsCentiDegC() % 10;
-  shiftDigits[11] = EMPTY_DIGIT;
+  shiftDigits[8] = temperature.AsCentiDegC() / 1000;
+  shiftDigits[9] = temperature.AsCentiDegC() % 1000 / 100;
+  shiftDigits[10] = temperature.AsCentiDegC() % 100 / 10;
+  shiftDigits[11] = temperature.AsCentiDegC() / 10;
   shiftDigits[12] = EMPTY_DIGIT;
 }
 
@@ -217,29 +224,11 @@ void setShiftTimeAndTemp()
   shiftDigits[5] = now.Second() % 10;
   shiftDigits[6] = EMPTY_DIGIT;
   shiftDigits[7] = EMPTY_DIGIT;
-  shiftDigits[8] = EMPTY_DIGIT;
-  shiftDigits[9] = temperature.AsCentiDegC() / 10;
-  shiftDigits[10] = temperature.AsCentiDegC() % 10;
-  shiftDigits[11] = EMPTY_DIGIT;
+  shiftDigits[8] = temperature.AsCentiDegC() / 1000;
+  shiftDigits[9] = temperature.AsCentiDegC() % 1000 / 100;
+  shiftDigits[10] = temperature.AsCentiDegC() % 100 / 10;
+  shiftDigits[11] = temperature.AsCentiDegC() / 10;
   shiftDigits[12] = EMPTY_DIGIT;
-}
-
-void shiftLeft()
-{
-  for (int i = 1; i <= DIGITS_SIZE + 1; i++)
-  {
-    nixie.setDigits(shiftDigits, i);
-    vTaskDelay(SHIFT_DELAY_MS);
-  }
-}
-
-void shiftRight()
-{
-  for (int i = 6; i >= 0; i--)
-  {
-    nixie.setDigits(shiftDigits, i);
-    vTaskDelay(SHIFT_DELAY_MS);
-  }
 }
 
 void updateNixieTask(void *params)
@@ -248,10 +237,36 @@ void updateNixieTask(void *params)
   {
     if (now.Second() % 10 == 0)
     {
-      setShiftTimeAndDate();
-      shiftLeft();
-      vTaskDelay(2000);
-      shiftRight();
+      switch (displayMode)
+      {
+      case TIME_DATE_DISP_MODE:
+        setShiftTimeAndDate();
+        nixie.shiftLeft(shiftDigits);
+        vTaskDelay(2000);
+
+        setShiftTimeAndDate();
+        nixie.shiftRight(shiftDigits);
+
+        break;
+
+      case TIME_DATE_TEMP_DISP_MODE:
+        setShiftTimeAndDate();
+        nixie.shiftLeft(shiftDigits);
+        vTaskDelay(2000);
+
+        temperature = Rtc.GetTemperature();
+        setShiftDateAndTemp();
+        nixie.shiftLeft(shiftDigits);
+        vTaskDelay(2000);
+
+        setShiftTimeAndTemp();
+        nixie.shiftRight(shiftDigits);
+
+        break;
+
+      default:
+        break;
+      }
     }
     else
     {
@@ -325,11 +340,15 @@ void setup()
 
   Rtc.Begin();
 
+  now = Rtc.GetDateTime();
+
   xTaskCreate(updateTimeTask, "update time", 2048, NULL, 1, NULL);
 
   nixieBrightness = myPrefs.getUInt(NIXIE_BRIGHTNESS, 255);
   nixie.setBrightness(nixieBrightness);
   nixie.begin();
+
+  displayMode = myPrefs.getUInt(DISPLAY_MODE, TIME_DISP_MODE);
 
   xTaskCreate(updateNixieTask, "update nixie", 1024, NULL, 1, NULL);
 

@@ -76,6 +76,24 @@ void Nixie::setDigits(uint8_t *digs, uint8_t startInd)
     digitValues[5] = digitCodes[digs[startInd + 5]];
 }
 
+void Nixie::shiftLeft(uint8_t *digs)
+{
+    for (int i = 1; i <= DIGITS_SIZE + 1; i++)
+    {
+        setDigits(digs, i);
+        vTaskDelay(SHIFT_DELAY_MS);
+    }
+}
+
+void Nixie::shiftRight(uint8_t *digs)
+{
+    for (int i = 6; i >= 0; i--)
+    {
+        setDigits(digs, i);
+        vTaskDelay(SHIFT_DELAY_MS);
+    }
+}
+
 void Nixie::refreshTask(void *params)
 {
     Nixie *nixie = (Nixie *)params;
