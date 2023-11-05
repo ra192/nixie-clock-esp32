@@ -21,6 +21,8 @@
 
 #define NIXIE_BRIGHTNESS "nixie_brightness"
 
+#define SHIFT_DELAY_MS 100
+
 #define SYNC_TIME "sync_time"
 #define TIME_ZONE "time_zone"
 
@@ -42,6 +44,7 @@ uint8_t nixieBrightness;
 
 RtcDS3231<TwoWire> Rtc(Wire);
 RtcDateTime now;
+RtcTemperature temperature;
 
 CRGB leds[LED_COUNT];
 uint8_t ledBrightness;
@@ -166,8 +169,7 @@ void updateTimeTask(void *params)
   }
 }
 
-uint8_t shiftDigits[12];
-uint8_t shiftInd;
+uint8_t shiftDigits[13];
 
 void setShiftTimeAndDate()
 {
@@ -187,62 +189,69 @@ void setShiftTimeAndDate()
   shiftDigits[12] = yy % 10;
 }
 
-void shiftLeft(bool &end)
+void setShiftDateAndTemp()
 {
-  nixie.setDigits(shiftDigits, shiftInd);
-  if (shiftInd <= DIGITS_SIZE)
-  {
-    shiftInd++;
-  }
-  else
-  {
-    end = false;
-  }
-  vTaskDelay(100);
+  shiftDigits[0] = now.Day() / 10;
+  shiftDigits[1] = now.Day() % 10;
+  shiftDigits[2] = now.Month() / 10;
+  shiftDigits[3] = now.Month() % 10;
+  uint8_t yy = now.Year() % 100;
+  shiftDigits[4] = yy / 10;
+  shiftDigits[5] = yy % 10;
+  shiftDigits[6] = EMPTY_DIGIT;
+  shiftDigits[7] = EMPTY_DIGIT;
+  shiftDigits[8] = EMPTY_DIGIT;
+  shiftDigits[9] = temperature.AsCentiDegC() / 10;
+  shiftDigits[10] = temperature.AsCentiDegC() % 10;
+  shiftDigits[11] = EMPTY_DIGIT;
+  shiftDigits[12] = EMPTY_DIGIT;
 }
 
-void shiftRight(bool &end)
+void setShiftTimeAndTemp()
 {
-  nixie.setDigits(shiftDigits, shiftInd);
-  if (shiftInd > 0)
+  shiftDigits[0] = now.Hour() / 10;
+  shiftDigits[1] = now.Hour() % 10;
+  shiftDigits[2] = now.Minute() / 10;
+  shiftDigits[3] = now.Minute() % 10;
+  shiftDigits[4] = now.Second() / 10;
+  shiftDigits[5] = now.Second() % 10;
+  shiftDigits[6] = EMPTY_DIGIT;
+  shiftDigits[7] = EMPTY_DIGIT;
+  shiftDigits[8] = EMPTY_DIGIT;
+  shiftDigits[9] = temperature.AsCentiDegC() / 10;
+  shiftDigits[10] = temperature.AsCentiDegC() % 10;
+  shiftDigits[11] = EMPTY_DIGIT;
+  shiftDigits[12] = EMPTY_DIGIT;
+}
+
+void shiftLeft()
+{
+  for (int i = 1; i <= DIGITS_SIZE + 1; i++)
   {
-    shiftInd--;
+    nixie.setDigits(shiftDigits, i);
+    vTaskDelay(SHIFT_DELAY_MS);
   }
-  else
+}
+
+void shiftRight()
+{
+  for (int i = 6; i >= 0; i--)
   {
-    end = false;
+    nixie.setDigits(shiftDigits, i);
+    vTaskDelay(SHIFT_DELAY_MS);
   }
-  vTaskDelay(100);
 }
 
 void updateNixieTask(void *params)
 {
-  bool shiftDate = false;
-  bool shiftTime = false;
-
   for (;;)
   {
-    if (now.Second() % 10 == 0 && !shiftDate)
+    if (now.Second() % 10 == 0)
     {
-      shiftDate = true;
       setShiftTimeAndDate();
-      shiftInd = 1;
-    }
-    else if (shiftDate)
-    {
-      shiftLeft(shiftDate);
-
-      if (!shiftDate)
-      {
-        shiftTime = true;
-        setShiftTimeAndDate();
-        shiftInd = 6;
-        vTaskDelay(2000);
-      }
-    }
-    else if (shiftTime)
-    {
-      shiftRight(shiftTime);
+      shiftLeft();
+      vTaskDelay(2000);
+      shiftRight();
     }
     else
     {
