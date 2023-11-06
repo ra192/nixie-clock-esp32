@@ -35,6 +35,48 @@ void Nixie::offDigit(uint8_t num)
     ledcWrite(PwmLChannels[num], 0);
 }
 
+void Nixie::setDigVals(uint8_t *digs, uint8_t startInd)
+{
+    digitValues[0] = digs[startInd];
+    digitValues[1] = digs[startInd + 1];
+    digitValues[2] = digs[startInd + 2];
+    digitValues[3] = digs[startInd + 3];
+    digitValues[4] = digs[startInd + 4];
+    digitValues[5] = digs[startInd + 5];
+}
+
+void Nixie::refreshTask(void *params)
+{
+    Nixie *nixie = (Nixie *)params;
+    bool isOn = false;
+    uint8_t current = 4;
+
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+
+    for (;;)
+    {
+        if (isOn)
+        {
+            nixie->offDigit(current);
+            isOn = false;
+            current = (current + 1) % DIGITS_SIZE;
+            vTaskDelayUntil(&xLastWakeTime, NIXIE_OFF_DELAY);
+        }
+        else if (nixie->digitValues[current] == EMPTY_DIGIT)
+        {
+            nixie->offDigit(current);
+            current = (current + 1) % DIGITS_SIZE;
+            vTaskDelayUntil(&xLastWakeTime, NIXIE_TOTAL_DELAY);
+        }
+        else
+        {
+            nixie->onDigit(current);
+            isOn = true;
+            vTaskDelayUntil(&xLastWakeTime, NIXIE_ON_DELAY);
+        }
+    }
+}
+
 Nixie::Nixie()
 {
     setBrightness(255);
@@ -68,6 +110,31 @@ void Nixie::begin()
     xTaskCreate(refreshTask, "refresh nixie", 1024, this, configMAX_PRIORITIES - 1, NULL);
 }
 
+void Nixie::flip_all(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
+{
+    for (int i = 0; i < 10; i++)
+    {
+        setDigits(i, i, i, i, i, i);
+        vTaskDelay(FLIP_ALL_DELAY_MS);
+    }
+    setDigits(dig1, dig2, dig3, dig4, dig5, dig6);
+}
+
+void Nixie::flip_seq(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
+{
+    uint8_t digArr[DIGITS_SIZE] = {dig1, dig2, dig3, dig4, dig5, dig6};
+    for (int i = 0; i < DIGITS_SIZE; i++)
+    {
+        for (int j = 0; j < 10; j++)
+        {
+            digitValues[i] = digitCodes[j];
+            vTaskDelay(FLIP_SEQ_DELAY_MS);
+        }
+        digitValues[i] = digitCodes[digArr[i]];
+        vTaskDelay(FLIP_SEQ_DELAY_MS);
+    }
+}
+
 void Nixie::setBrightness(uint8_t brightness)
 {
     this->brightness = brightness;
@@ -81,16 +148,6 @@ void Nixie::setDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, ui
     digitValues[3] = digitCodes[dig4];
     digitValues[4] = digitCodes[dig5];
     digitValues[5] = digitCodes[dig6];
-}
-
-void Nixie::setDigVals(uint8_t *digs, uint8_t startInd)
-{
-    digitValues[0] = digs[startInd];
-    digitValues[1] = digs[startInd + 1];
-    digitValues[2] = digs[startInd + 2];
-    digitValues[3] = digs[startInd + 3];
-    digitValues[4] = digs[startInd + 4];
-    digitValues[5] = digs[startInd + 5];
 }
 
 void Nixie::shiftLeft(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
@@ -114,37 +171,5 @@ void Nixie::shiftRight(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, u
     {
         setDigVals(shiftDigs, i);
         vTaskDelay(SHIFT_DELAY_MS);
-    }
-}
-
-void Nixie::refreshTask(void *params)
-{
-    Nixie *nixie = (Nixie *)params;
-    bool isOn = false;
-    uint8_t current = 4;
-
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-
-    for (;;)
-    {
-        if (isOn)
-        {
-            nixie->offDigit(current);
-            isOn = false;
-            current = (current + 1) % DIGITS_SIZE;
-            vTaskDelayUntil(&xLastWakeTime, NIXIE_OFF_DELAY);
-        }
-        else if (nixie->digitValues[current] == EMPTY_DIGIT)
-        {
-            nixie->offDigit(current);
-            current = (current + 1) % DIGITS_SIZE;
-            vTaskDelayUntil(&xLastWakeTime, NIXIE_TOTAL_DELAY);
-        }
-        else
-        {
-            nixie->onDigit(current);
-            isOn = true;
-            vTaskDelayUntil(&xLastWakeTime, NIXIE_ON_DELAY);
-        }
     }
 }

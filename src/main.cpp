@@ -24,6 +24,20 @@
 #define SYNC_TIME "sync_time"
 #define TIME_ZONE "time_zone"
 
+#define DISPLAY_MODE "display_mode"
+
+#define TIME_DISP_MODE 0
+#define TIME_DATE_DISP_MODE 1
+#define TIME_DATE_TEMP_DISP_MODE 2
+
+#define TRANSITION_EFFECT "transition_effect"
+
+#define NO_TRANSITION_EFFECT 0
+#define SHIFT_LEFT_TRANSITION_EFFECT 1
+#define SHIFT_RIGHT_TRANSITION_EFFECT 2
+#define FLIP_ALL_TRANSITION_EFFECT 3
+#define FLIP_SEQ_TRANSITION_EFFECT 4
+
 #define DOT_1_PIN 2
 #define DOT_2_PIN 23
 
@@ -31,12 +45,6 @@
 #define LED_PIN 27
 #define LED_BRIGHTNESS "led_brightness"
 #define LED_COLOR "led_color"
-
-#define DISPLAY_MODE "display_mode"
-
-#define TIME_DISP_MODE 0
-#define TIME_DATE_DISP_MODE 1
-#define TIME_DATE_TEMP_DISP_MODE 2
 
 Preferences myPrefs;
 
@@ -49,14 +57,16 @@ RtcDS3231<TwoWire> Rtc(Wire);
 RtcDateTime now;
 RtcTemperature temperature;
 
-CRGB leds[LED_COUNT];
-uint8_t ledBrightness;
-CRGB color;
-
 int isSyncTime;
 String timeZone;
 
 uint8_t displayMode;
+
+uint8_t transitionEffect;
+
+CRGB leds[LED_COUNT];
+uint8_t ledBrightness;
+CRGB color;
 
 void startAP()
 {
@@ -102,9 +112,10 @@ void setupWebserver()
       doc[SYNC_TIME]=isSyncTime;
       doc[TIME_ZONE]=timeZone;
       doc[NIXIE_BRIGHTNESS]=nixieBrightness;
+      doc[DISPLAY_MODE]=displayMode;
+      doc[TRANSITION_EFFECT]=transitionEffect;
       doc[LED_BRIGHTNESS]=ledBrightness;
       doc[LED_COLOR]=color.r<<16 | color.g<<8 | color.b;
-      doc[DISPLAY_MODE]=displayMode;
 
       String jsonStr;
       serializeJson(doc,jsonStr);
@@ -156,6 +167,9 @@ void setupWebserver()
               nixie.setBrightness(nixieBrightness);
               myPrefs.putUInt(NIXIE_BRIGHTNESS,nixieBrightness);
 
+              transitionEffect = request->getParam(TRANSITION_EFFECT, true)->value().toInt();
+              myPrefs.putUInt(TRANSITION_EFFECT, transitionEffect);
+
               ledBrightness = request->getParam(LED_BRIGHTNESS,true)->value().toInt();
               FastLED.setBrightness(ledBrightness);
               myPrefs.putUInt(LED_BRIGHTNESS,ledBrightness);
@@ -185,6 +199,28 @@ void updateTimeTask(void *params)
   }
 }
 
+void doTransition(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
+{
+  switch (transitionEffect)
+  {
+  case SHIFT_LEFT_TRANSITION_EFFECT:
+    nixie.shiftLeft(dig1, dig2, dig3, dig4, dig5, dig6);
+    break;
+  case SHIFT_RIGHT_TRANSITION_EFFECT:
+    nixie.shiftRight(dig1, dig2, dig3, dig4, dig5, dig6);
+    break;
+  case FLIP_ALL_TRANSITION_EFFECT:
+    nixie.flip_all(dig1, dig2, dig3, dig4, dig5, dig6);
+    break;
+  case FLIP_SEQ_TRANSITION_EFFECT:
+    nixie.flip_seq(dig1, dig2, dig3, dig4, dig5, dig6);
+    break;
+  default:
+    nixie.setDigits(dig1, dig2, dig3, dig4, dig5, dig6);
+    break;
+  }
+}
+
 void updateNixieTask(void *params)
 {
   for (;;)
@@ -194,21 +230,21 @@ void updateNixieTask(void *params)
       switch (displayMode)
       {
       case TIME_DATE_DISP_MODE:
-        nixie.shiftLeft(now.Day() / 10, now.Day() % 10, now.Month() / 10, now.Month() % 10, now.Year() % 100 / 10, now.Year() % 10);
+        doTransition(now.Day() / 10, now.Day() % 10, now.Month() / 10, now.Month() % 10, now.Year() % 100 / 10, now.Year() % 10);
         vTaskDelay(2000);
 
-        nixie.shiftRight(now.Hour() / 10, now.Hour() % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+        doTransition(now.Hour() / 10, now.Hour() % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
 
         break;
 
       case TIME_DATE_TEMP_DISP_MODE:
-        nixie.shiftLeft(now.Day() / 10, now.Day() % 10, now.Month() / 10, now.Month() % 10, now.Year() % 100 / 10, now.Year() % 10);
+        doTransition(now.Day() / 10, now.Day() % 10, now.Month() / 10, now.Month() % 10, now.Year() % 100 / 10, now.Year() % 10);
         vTaskDelay(2000);
 
-        nixie.shiftLeft(EMPTY_DIGIT, temperature.AsCentiDegC() / 1000, temperature.AsCentiDegC() % 1000 / 100, temperature.AsCentiDegC() % 100 / 10, temperature.AsCentiDegC() % 10, EMPTY_DIGIT);
+        doTransition(EMPTY_DIGIT, temperature.AsCentiDegC() / 1000, temperature.AsCentiDegC() % 1000 / 100, temperature.AsCentiDegC() % 100 / 10, temperature.AsCentiDegC() % 10, EMPTY_DIGIT);
         vTaskDelay(2000);
 
-        nixie.shiftRight(now.Hour() / 10, now.Hour() % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+        doTransition(now.Hour() / 10, now.Hour() % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
 
         break;
 
@@ -297,6 +333,8 @@ void setup()
   nixie.begin();
 
   displayMode = myPrefs.getUInt(DISPLAY_MODE, TIME_DISP_MODE);
+
+  transitionEffect = myPrefs.getUInt(TRANSITION_EFFECT, SHIFT_LEFT_TRANSITION_EFFECT);
 
   xTaskCreate(updateNixieTask, "update nixie", 1024, NULL, 1, NULL);
 
