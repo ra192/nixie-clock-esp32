@@ -3,6 +3,23 @@
 
 const uint8_t digitCodes[] = {1, 0, 9, 8, 7, 6, 5, 4, 3, 2, EMPTY_DIGIT};
 
+void Nixie::createShiftArray(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6, uint8_t *resArr)
+{
+    resArr[0] = digitValues[0];
+    resArr[1] = digitValues[1];
+    resArr[2] = digitValues[2];
+    resArr[3] = digitValues[3];
+    resArr[4] = digitValues[4];
+    resArr[5] = digitValues[5];
+    resArr[6] = EMPTY_DIGIT;
+    resArr[7] = digitCodes[dig1];
+    resArr[8] = digitCodes[dig2],
+    resArr[9] = digitCodes[dig3],
+    resArr[10] = digitCodes[dig4],
+    resArr[11] = digitCodes[dig5],
+    resArr[12] = digitCodes[dig6];
+}
+
 void Nixie::onDigit(uint8_t num)
 {
     digitalWrite(DEC_A0_PIN, digitValues[num] & 0x01);
@@ -68,28 +85,34 @@ void Nixie::setDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, ui
 
 void Nixie::setDigits(uint8_t *digs, uint8_t startInd)
 {
-    digitValues[0] = digitCodes[digs[startInd]];
-    digitValues[1] = digitCodes[digs[startInd + 1]];
-    digitValues[2] = digitCodes[digs[startInd + 2]];
-    digitValues[3] = digitCodes[digs[startInd + 3]];
-    digitValues[4] = digitCodes[digs[startInd + 4]];
-    digitValues[5] = digitCodes[digs[startInd + 5]];
+    digitValues[0] = digs[startInd];
+    digitValues[1] = digs[startInd + 1];
+    digitValues[2] = digs[startInd + 2];
+    digitValues[3] = digs[startInd + 3];
+    digitValues[4] = digs[startInd + 4];
+    digitValues[5] = digs[startInd + 5];
 }
 
-void Nixie::shiftLeft(uint8_t *digs)
+void Nixie::shiftLeft(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
 {
+    uint8_t shiftDigs[2 * DIGITS_SIZE + 1];
+    createShiftArray(dig1, dig2, dig3, dig4, dig5, dig6, shiftDigs);
+
     for (int i = 1; i <= DIGITS_SIZE + 1; i++)
     {
-        setDigits(digs, i);
+        setDigits(shiftDigs, i);
         vTaskDelay(SHIFT_DELAY_MS);
     }
 }
 
-void Nixie::shiftRight(uint8_t *digs)
+void Nixie::shiftRight(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
 {
+    uint8_t shiftDigs[2 * DIGITS_SIZE + 1];
+    createShiftArray(dig1, dig2, dig3, dig4, dig5, dig6, shiftDigs);
+
     for (int i = 6; i >= 0; i--)
     {
-        setDigits(digs, i);
+        setDigits(shiftDigs, i);
         vTaskDelay(SHIFT_DELAY_MS);
     }
 }

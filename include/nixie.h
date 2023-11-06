@@ -45,11 +45,13 @@ private:
 
     uint8_t brightness;
 
+    void createShiftArray(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6, uint8_t *resArr);
+
     void onDigit(uint8_t num);
 
     void offDigit(uint8_t num);
 
-    void setDigits(uint8_t * digs, uint8_t startInd);
+    void setDigits(uint8_t *digs, uint8_t startInd);
 
     static void refreshTask(void *params);
 
@@ -62,9 +64,9 @@ public:
 
     void setDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6);
 
-    void shiftLeft(uint8_t *digs);
+    void shiftLeft(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6);
 
-    void shiftRight(uint8_t *digs);
+    void shiftRight(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6);
 };
 
 #endif

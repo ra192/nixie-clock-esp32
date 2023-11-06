@@ -185,61 +185,6 @@ void updateTimeTask(void *params)
   }
 }
 
-uint8_t shiftDigits[13];
-
-void setShiftTimeAndDate()
-{
-  shiftDigits[0] = now.Hour() / 10;
-  shiftDigits[1] = now.Hour() % 10;
-  shiftDigits[2] = now.Minute() / 10;
-  shiftDigits[3] = now.Minute() % 10;
-  shiftDigits[4] = now.Second() / 10;
-  shiftDigits[5] = now.Second() % 10;
-  shiftDigits[6] = EMPTY_DIGIT;
-  shiftDigits[7] = now.Day() / 10;
-  shiftDigits[8] = now.Day() % 10;
-  shiftDigits[9] = now.Month() / 10;
-  shiftDigits[10] = now.Month() % 10;
-  uint8_t yy = now.Year() % 100;
-  shiftDigits[11] = yy / 10;
-  shiftDigits[12] = yy % 10;
-}
-
-void setShiftDateAndTemp()
-{
-  shiftDigits[0] = now.Day() / 10;
-  shiftDigits[1] = now.Day() % 10;
-  shiftDigits[2] = now.Month() / 10;
-  shiftDigits[3] = now.Month() % 10;
-  uint8_t yy = now.Year() % 100;
-  shiftDigits[4] = yy / 10;
-  shiftDigits[5] = yy % 10;
-  shiftDigits[6] = EMPTY_DIGIT;
-  shiftDigits[7] = EMPTY_DIGIT;
-  shiftDigits[8] = temperature.AsCentiDegC() / 1000;
-  shiftDigits[9] = temperature.AsCentiDegC() % 1000 / 100;
-  shiftDigits[10] = temperature.AsCentiDegC() % 100 / 10;
-  shiftDigits[11] = temperature.AsCentiDegC() % 10;
-  shiftDigits[12] = EMPTY_DIGIT;
-}
-
-void setShiftTimeAndTemp()
-{
-  shiftDigits[0] = now.Hour() / 10;
-  shiftDigits[1] = now.Hour() % 10;
-  shiftDigits[2] = now.Minute() / 10;
-  shiftDigits[3] = now.Minute() % 10;
-  shiftDigits[4] = now.Second() / 10;
-  shiftDigits[5] = now.Second() % 10;
-  shiftDigits[6] = EMPTY_DIGIT;
-  shiftDigits[7] = EMPTY_DIGIT;
-  shiftDigits[8] = temperature.AsCentiDegC() / 1000;
-  shiftDigits[9] = temperature.AsCentiDegC() % 1000 / 100;
-  shiftDigits[10] = temperature.AsCentiDegC() % 100 / 10;
-  shiftDigits[11] = temperature.AsCentiDegC() / 10;
-  shiftDigits[12] = EMPTY_DIGIT;
-}
-
 void updateNixieTask(void *params)
 {
   for (;;)
@@ -249,26 +194,21 @@ void updateNixieTask(void *params)
       switch (displayMode)
       {
       case TIME_DATE_DISP_MODE:
-        setShiftTimeAndDate();
-        nixie.shiftLeft(shiftDigits);
+        nixie.shiftLeft(now.Day() / 10, now.Day() % 10, now.Month() / 10, now.Month() % 10, now.Year() % 100 / 10, now.Year() % 10);
         vTaskDelay(2000);
 
-        setShiftTimeAndDate();
-        nixie.shiftRight(shiftDigits);
+        nixie.shiftRight(now.Hour() / 10, now.Hour() % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
 
         break;
 
       case TIME_DATE_TEMP_DISP_MODE:
-        setShiftTimeAndDate();
-        nixie.shiftLeft(shiftDigits);
+        nixie.shiftLeft(now.Day() / 10, now.Day() % 10, now.Month() / 10, now.Month() % 10, now.Year() % 100 / 10, now.Year() % 10);
         vTaskDelay(2000);
 
-        setShiftDateAndTemp();
-        nixie.shiftLeft(shiftDigits);
+        nixie.shiftLeft(EMPTY_DIGIT, temperature.AsCentiDegC() / 1000, temperature.AsCentiDegC() % 1000 / 100, temperature.AsCentiDegC() % 100 / 10, temperature.AsCentiDegC() % 10, EMPTY_DIGIT);
         vTaskDelay(2000);
 
-        setShiftTimeAndTemp();
-        nixie.shiftRight(shiftDigits);
+        nixie.shiftRight(now.Hour() / 10, now.Hour() % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
 
         break;
 
