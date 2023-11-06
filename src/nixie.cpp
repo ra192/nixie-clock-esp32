@@ -83,7 +83,7 @@ void Nixie::setDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, ui
     digitValues[5] = digitCodes[dig6];
 }
 
-void Nixie::setDigits(uint8_t *digs, uint8_t startInd)
+void Nixie::setDigVals(uint8_t *digs, uint8_t startInd)
 {
     digitValues[0] = digs[startInd];
     digitValues[1] = digs[startInd + 1];
@@ -100,7 +100,7 @@ void Nixie::shiftLeft(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, ui
 
     for (int i = 1; i <= DIGITS_SIZE + 1; i++)
     {
-        setDigits(shiftDigs, i);
+        setDigVals(shiftDigs, i);
         vTaskDelay(SHIFT_DELAY_MS);
     }
 }
@@ -112,7 +112,7 @@ void Nixie::shiftRight(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, u
 
     for (int i = 6; i >= 0; i--)
     {
-        setDigits(shiftDigs, i);
+        setDigVals(shiftDigs, i);
         vTaskDelay(SHIFT_DELAY_MS);
     }
 }

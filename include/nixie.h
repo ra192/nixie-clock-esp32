@@ -51,7 +51,7 @@ private:
 
     void offDigit(uint8_t num);
 
-    void setDigits(uint8_t *digs, uint8_t startInd);
+    void setDigVals(uint8_t *digs, uint8_t startInd);
 
     static void refreshTask(void *params);
 
