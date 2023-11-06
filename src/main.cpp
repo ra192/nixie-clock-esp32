@@ -30,6 +30,7 @@
 #define LED_COUNT 6
 #define LED_PIN 27
 #define LED_BRIGHTNESS "led_brightness"
+#define LED_COLOR "led_color"
 
 #define DISPLAY_MODE "display_mode"
 
@@ -50,6 +51,7 @@ RtcTemperature temperature;
 
 CRGB leds[LED_COUNT];
 uint8_t ledBrightness;
+CRGB color;
 
 int isSyncTime;
 String timeZone;
@@ -101,6 +103,7 @@ void setupWebserver()
       doc[TIME_ZONE]=timeZone;
       doc[NIXIE_BRIGHTNESS]=nixieBrightness;
       doc[LED_BRIGHTNESS]=ledBrightness;
+      doc[LED_COLOR]=color.r<<16 | color.g<<8 | color.b;
       doc[DISPLAY_MODE]=displayMode;
 
       String jsonStr;
@@ -157,6 +160,10 @@ void setupWebserver()
               FastLED.setBrightness(ledBrightness);
               myPrefs.putUInt(LED_BRIGHTNESS,ledBrightness);
 
+              uint32_t colorUint=request->getParam(LED_COLOR, true)->value().toInt();
+              color = CRGB(colorUint);
+              myPrefs.putUInt(LED_COLOR, colorUint);
+
               displayMode = request->getParam(DISPLAY_MODE,true)->value().toInt();
               myPrefs.putUInt(DISPLAY_MODE, displayMode);
 
@@ -172,6 +179,8 @@ void updateTimeTask(void *params)
   for (;;)
   {
     now = Rtc.GetDateTime();
+    if (displayMode == TIME_DATE_TEMP_DISP_MODE)
+      temperature = Rtc.GetTemperature();
     vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
 }
@@ -210,7 +219,7 @@ void setShiftDateAndTemp()
   shiftDigits[8] = temperature.AsCentiDegC() / 1000;
   shiftDigits[9] = temperature.AsCentiDegC() % 1000 / 100;
   shiftDigits[10] = temperature.AsCentiDegC() % 100 / 10;
-  shiftDigits[11] = temperature.AsCentiDegC() / 10;
+  shiftDigits[11] = temperature.AsCentiDegC() % 10;
   shiftDigits[12] = EMPTY_DIGIT;
 }
 
@@ -235,7 +244,7 @@ void updateNixieTask(void *params)
 {
   for (;;)
   {
-    if (now.Second() % 10 == 0)
+    if (now.Second() % 30 == 0)
     {
       switch (displayMode)
       {
@@ -254,7 +263,6 @@ void updateNixieTask(void *params)
         nixie.shiftLeft(shiftDigits);
         vTaskDelay(2000);
 
-        temperature = Rtc.GetTemperature();
         setShiftDateAndTemp();
         nixie.shiftLeft(shiftDigits);
         vTaskDelay(2000);
@@ -301,7 +309,7 @@ void updateLedsTask(void *args)
 {
   for (;;)
   {
-    FastLED.showColor(CRGB::Red);
+    FastLED.showColor(color);
     vTaskDelay(100 / portTICK_PERIOD_MS);
   }
 }
@@ -355,6 +363,14 @@ void setup()
   FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, LED_COUNT);
   ledBrightness = myPrefs.getUInt(LED_BRIGHTNESS, 128);
   FastLED.setBrightness(ledBrightness);
+  if (myPrefs.isKey(LED_COLOR))
+  {
+    color = CRGB(myPrefs.getUInt(LED_COLOR));
+  }
+  else
+  {
+    color = CRGB::Red;
+  }
 
   xTaskCreate(updateLedsTask, "update leds", 1024, NULL, 4, NULL);
 
