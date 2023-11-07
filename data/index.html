@@ -68,6 +68,13 @@
             <input type="number" id="led_brightness" name="led_brightness" max="255" /><br />
             <label for="led_color">Led color</label>
             <input type="number" id="led_color" name="led_color" /><br />
+            <label for="led_mode">Led mode</label>
+            <select id="led_mode" name="led_mode">
+              <option value="0">None</option>
+              <option value="1">Static color</option>
+              <option value="2">Rainbow</option>
+              <option value="3">Fade</option>
+            </select><br />
             <input type="submit" value="Submit" />
           </p>
         </form>
@@ -84,6 +91,7 @@
       document.getElementById('transition_effect').value = data['transition_effect'];
       document.getElementById('led_brightness').value = data['led_brightness'];
       document.getElementById('led_color').value = data['led_color'];
+      document.getElementById('led_mode').value = data['led_mode'];
     });
   </script>
 </body>

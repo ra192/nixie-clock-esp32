@@ -45,6 +45,12 @@
 #define LED_PIN 27
 #define LED_BRIGHTNESS "led_brightness"
 #define LED_COLOR "led_color"
+#define LED_MODE "led_mode"
+
+#define LED_MODE_OFF 0
+#define LED_MODE_STATIC 1
+#define LED_MODE_RAINBOW 2
+#define LED_MODE_FADE 3
 
 Preferences myPrefs;
 
@@ -67,6 +73,8 @@ uint8_t transitionEffect;
 CRGB leds[LED_COUNT];
 uint8_t ledBrightness;
 CRGB color;
+
+uint8_t ledMode;
 
 void startAP()
 {
@@ -116,6 +124,7 @@ void setupWebserver()
       doc[TRANSITION_EFFECT]=transitionEffect;
       doc[LED_BRIGHTNESS]=ledBrightness;
       doc[LED_COLOR]=color.r<<16 | color.g<<8 | color.b;
+      doc[LED_MODE]=ledMode;
 
       String jsonStr;
       serializeJson(doc,jsonStr);
@@ -170,6 +179,9 @@ void setupWebserver()
               transitionEffect = request->getParam(TRANSITION_EFFECT, true)->value().toInt();
               myPrefs.putUInt(TRANSITION_EFFECT, transitionEffect);
 
+              displayMode = request->getParam(DISPLAY_MODE,true)->value().toInt();
+              myPrefs.putUInt(DISPLAY_MODE, displayMode);
+
               ledBrightness = request->getParam(LED_BRIGHTNESS,true)->value().toInt();
               FastLED.setBrightness(ledBrightness);
               myPrefs.putUInt(LED_BRIGHTNESS,ledBrightness);
@@ -178,8 +190,8 @@ void setupWebserver()
               color = CRGB(colorUint);
               myPrefs.putUInt(LED_COLOR, colorUint);
 
-              displayMode = request->getParam(DISPLAY_MODE,true)->value().toInt();
-              myPrefs.putUInt(DISPLAY_MODE, displayMode);
+              ledMode = request->getParam(LED_MODE, true)->value().toInt();
+              myPrefs.putUInt(LED_MODE,ledMode);
 
               request->redirect("/"); });
 
@@ -283,10 +295,47 @@ void toggleDotsTask(void *params)
 
 void updateLedsTask(void *args)
 {
+  uint8_t hue;
+  uint8_t fadeScale;
+  int fadeAdd;
   for (;;)
   {
-    FastLED.showColor(color);
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    switch (ledMode)
+    {
+    case LED_MODE_STATIC:
+      FastLED.setBrightness(ledBrightness);
+      FastLED.showColor(color);
+      vTaskDelay(100 / portTICK_PERIOD_MS);
+      break;
+
+    case LED_MODE_RAINBOW:
+      hue = (hue + 1) % 256;
+      FastLED.setBrightness(ledBrightness);
+      FastLED.showColor(CHSV(hue, 255, 255));
+      vTaskDelay(100 / portTICK_PERIOD_MS);
+      break;
+
+    case LED_MODE_FADE:
+      if (fadeScale == 0)
+      {
+        fadeAdd = 1;
+      }
+      else if (fadeScale == ledBrightness)
+      {
+        fadeAdd = -1;
+      }
+
+      fadeScale += fadeAdd;
+      FastLED.setBrightness(fadeScale);
+      FastLED.showColor(color);
+      vTaskDelay(100 / portTICK_PERIOD_MS);
+      break;
+
+    default:
+      FastLED.clearData();
+      vTaskDelay(100 / portTICK_PERIOD_MS);
+      break;
+    }
   }
 }
 
@@ -340,7 +389,7 @@ void setup()
 
   FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, LED_COUNT);
   ledBrightness = myPrefs.getUInt(LED_BRIGHTNESS, 128);
-  FastLED.setBrightness(ledBrightness);
+
   if (myPrefs.isKey(LED_COLOR))
   {
     color = CRGB(myPrefs.getUInt(LED_COLOR));
@@ -349,6 +398,8 @@ void setup()
   {
     color = CRGB::Red;
   }
+
+  ledMode = myPrefs.getUInt(LED_MODE, LED_MODE_STATIC);
 
   xTaskCreate(updateLedsTask, "update leds", 1024, NULL, 4, NULL);
 
