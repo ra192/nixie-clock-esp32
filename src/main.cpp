@@ -305,7 +305,7 @@ void updateLedsTask(void *args)
     case LED_MODE_STATIC:
       FastLED.setBrightness(ledBrightness);
       FastLED.showColor(color);
-      vTaskDelay(100 / portTICK_PERIOD_MS);
+      vTaskDelay(1000 / portTICK_PERIOD_MS);
       break;
 
     case LED_MODE_RAINBOW:
@@ -332,8 +332,8 @@ void updateLedsTask(void *args)
       break;
 
     default:
-      FastLED.clearData();
-      vTaskDelay(100 / portTICK_PERIOD_MS);
+      FastLED.showColor(0);
+      vTaskDelay(1000 / portTICK_PERIOD_MS);
       break;
     }
   }
