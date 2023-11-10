@@ -30,6 +30,8 @@
           <p>
             <label for="time">Time</label>
             <input type="time" id="time" name="time" /><br />
+            <label for="date">Date</label>
+            <input type="date" id="date" name="date" /><br />
             <label for="sync_time">Sync time</label>
             <select id="sync_time" name="sync_time">
               <option value="1">on</option>
@@ -39,6 +41,11 @@
             <select id="time_zone" name="time_zone">
               <option value="EET-2EEST,M3.5.0/3,M10.5.0/4">Europe/Kiev</option>
               <option value="GMT0BST,M3.5.0/1,M10.5.0">Europe/London</option>
+            </select><br />
+            <label for="24h_format">12/24 format</label>
+            <select id="24h_format" name="24h_format">
+              <option value="0">12h</option>
+              <option value="1">24h</option>
             </select><br />
             <input type="submit" value="Submit" />
           </p>
@@ -63,6 +70,11 @@
               <option value="2">Shift right</option>
               <option value="3">Flip all</option>
               <option value="4">Flip seq</option>
+            </select><br />
+            <label for="celsius_temp">Temp in C/F</label>
+            <select id="celsius_temp" name="celsius_temp">
+              <option value="0">F</option>
+              <option value="1">C</option>
             </select><br />
             <label for="led_brightness">Led brightness</label>
             <input type="number" id="led_brightness" name="led_brightness" max="255" /><br />
@@ -89,6 +101,8 @@
       document.getElementById('nixie_brightness').value = data['nixie_brightness'];
       document.getElementById('display_mode').value = data['display_mode'];
       document.getElementById('transition_effect').value = data['transition_effect'];
+      document.getElementById('24h_format').value = data['24h_format'];
+      document.getElementById('celsius_temp').value = data['celsius_temp'];
       document.getElementById('led_brightness').value = data['led_brightness'];
       document.getElementById('led_color').value = data['led_color'];
       document.getElementById('led_mode').value = data['led_mode'];

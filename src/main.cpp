@@ -38,6 +38,9 @@
 #define FLIP_ALL_TRANSITION_EFFECT 3
 #define FLIP_SEQ_TRANSITION_EFFECT 4
 
+#define H24_FORMAT "24h_format"
+#define CELSIUS_TEMP "celsius_temp"
+
 #define DOT_1_PIN 2
 #define DOT_2_PIN 23
 
@@ -69,6 +72,9 @@ String timeZone;
 uint8_t displayMode;
 
 uint8_t transitionEffect;
+
+uint8_t h24Format;
+uint8_t celsiusTemp;
 
 CRGB leds[LED_COUNT];
 uint8_t ledBrightness;
@@ -122,6 +128,8 @@ void setupWebserver()
       doc[NIXIE_BRIGHTNESS]=nixieBrightness;
       doc[DISPLAY_MODE]=displayMode;
       doc[TRANSITION_EFFECT]=transitionEffect;
+      doc[H24_FORMAT]=h24Format;
+      doc[CELSIUS_TEMP]=celsiusTemp;
       doc[LED_BRIGHTNESS]=ledBrightness;
       doc[LED_COLOR]=color.r<<16 | color.g<<8 | color.b;
       doc[LED_MODE]=ledMode;
@@ -151,12 +159,16 @@ void setupWebserver()
             {
     String time = request->getParam("time", true)->value();
 
-    int delimInd = time.indexOf(":");
+    uint8_t hour = time.substring(0,2).toInt();
+    uint8_t minute = time.substring(3).toInt();
 
-    uint8_t hour = time.substring(0,delimInd).toInt();
-    uint8_t minute = time.substring(delimInd+1).toInt();
+    String date = request->getParam("date",true)->value();
 
-    RtcDateTime updatedTime = RtcDateTime(now.Year(), now.Month(), now.Day(),hour, minute, now.Second());
+    uint8_t year = date.substring(0,4).toInt() - 2000;
+    uint8_t month = date.substring(5,7).toInt();
+    uint8_t day = date.substring(8).toInt();
+
+    RtcDateTime updatedTime = RtcDateTime(year, month, day, hour, minute, now.Second());
 
     Rtc.SetDateTime(updatedTime);
 
@@ -167,6 +179,9 @@ void setupWebserver()
     myPrefs.putString(TIME_ZONE, timeZone);
 
     configTzTime(timeZone.c_str(), "pool.ntp.org");
+
+    h24Format = request->getParam(H24_FORMAT,true)->value().toInt();
+    myPrefs.putUInt(H24_FORMAT,h24Format);
 
     request->redirect("/"); });
 
@@ -185,6 +200,9 @@ void setupWebserver()
               ledBrightness = request->getParam(LED_BRIGHTNESS,true)->value().toInt();
               FastLED.setBrightness(ledBrightness);
               myPrefs.putUInt(LED_BRIGHTNESS,ledBrightness);
+
+              celsiusTemp = request->getParam(CELSIUS_TEMP,true)->value().toInt();
+              myPrefs.putUInt(CELSIUS_TEMP,celsiusTemp);
 
               uint32_t colorUint=request->getParam(LED_COLOR, true)->value().toInt();
               color = CRGB(colorUint);
@@ -233,8 +251,25 @@ void doTransition(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_
   }
 }
 
+uint8_t getHour()
+{
+  if (now.Hour() == 0 && !h24Format)
+  {
+    return 12;
+  }
+  else if (now.Hour() > 12 && !h24Format)
+  {
+    return now.Hour() - 12;
+  }
+  else
+  {
+    return now.Hour();
+  }
+}
+
 void updateNixieTask(void *params)
 {
+  uint8_t hour;
   for (;;)
   {
     if (now.Second() % 30 == 0)
@@ -245,7 +280,8 @@ void updateNixieTask(void *params)
         doTransition(now.Day() / 10, now.Day() % 10, now.Month() / 10, now.Month() % 10, now.Year() % 100 / 10, now.Year() % 10);
         vTaskDelay(2000);
 
-        doTransition(now.Hour() / 10, now.Hour() % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+        hour = getHour();
+        doTransition(hour / 10, hour % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
 
         break;
 
@@ -253,10 +289,22 @@ void updateNixieTask(void *params)
         doTransition(now.Day() / 10, now.Day() % 10, now.Month() / 10, now.Month() % 10, now.Year() % 100 / 10, now.Year() % 10);
         vTaskDelay(2000);
 
-        doTransition(EMPTY_DIGIT, temperature.AsCentiDegC() / 1000, temperature.AsCentiDegC() % 1000 / 100, temperature.AsCentiDegC() % 100 / 10, temperature.AsCentiDegC() % 10, EMPTY_DIGIT);
+        if (celsiusTemp)
+        {
+          doTransition(EMPTY_DIGIT, temperature.AsCentiDegC() / 1000, temperature.AsCentiDegC() % 1000 / 100, temperature.AsCentiDegC() % 100 / 10, temperature.AsCentiDegC() % 10, EMPTY_DIGIT);
+        }
+        else
+        {
+          float temperatureInF = temperature.AsFloatDegF();
+          int temperatureInF_Int = (int)temperatureInF;
+          int temperatureInF_Centi = (temperatureInF - temperatureInF_Int) * 100;
+
+          doTransition(EMPTY_DIGIT, temperatureInF_Int / 10, temperatureInF_Int % 10, temperatureInF_Centi / 10, temperatureInF_Centi % 10, EMPTY_DIGIT);
+        }
         vTaskDelay(2000);
 
-        doTransition(now.Hour() / 10, now.Hour() % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+        hour = getHour();
+        doTransition(hour / 10, hour % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
 
         break;
 
@@ -266,7 +314,8 @@ void updateNixieTask(void *params)
     }
     else
     {
-      nixie.setDigits(now.Hour() / 10, now.Hour() % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+      hour = getHour();
+      nixie.setDigits(hour / 10, hour % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
       vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
   }
@@ -382,8 +431,9 @@ void setup()
   nixie.begin();
 
   displayMode = myPrefs.getUInt(DISPLAY_MODE, TIME_DISP_MODE);
-
   transitionEffect = myPrefs.getUInt(TRANSITION_EFFECT, SHIFT_LEFT_TRANSITION_EFFECT);
+  h24Format = myPrefs.getUInt(H24_FORMAT, 1);
+  celsiusTemp = myPrefs.getUInt(CELSIUS_TEMP, 1);
 
   xTaskCreate(updateNixieTask, "update nixie", 1024, NULL, 1, NULL);
 
