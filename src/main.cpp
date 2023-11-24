@@ -16,8 +16,10 @@
 #include <Wire.h> // must be included here so that Arduino library object file references work
 #include <RtcDS3231.h>
 
-#define SSID "ssid"
+#define SSID_PARAM "ssid"
 #define PASSWORD "password"
+
+#define HOSTNAME "hostname"
 
 #define NIXIE_BRIGHTNESS "nixie_brightness"
 
@@ -57,6 +59,9 @@
 
 Preferences myPrefs;
 
+String ssid;
+String hostname;
+
 AsyncWebServer server(80);
 
 Nixie nixie;
@@ -88,18 +93,22 @@ void startAP()
   // Connect to Wi-Fi network with SSID and password
   Serial.println("Setting AP (Access Point)");
   // NULL sets an open Access Point
-  WiFi.softAP("nixie", NULL);
+  WiFi.softAP(hostname.c_str(), NULL);
 }
 
 void setupWifi()
 {
-  if (myPrefs.isKey(SSID) && myPrefs.isKey(PASSWORD))
+  if (!ssid.isEmpty() && myPrefs.isKey(PASSWORD))
   {
-    String ssid = myPrefs.getString(SSID);
     String password = myPrefs.getString(PASSWORD);
 
     WiFi.mode(WIFI_STA);
+
+    WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
+    WiFi.setHostname(hostname.c_str());
+
     WiFi.begin(ssid, password);
+
     if (WiFi.waitForConnectResult() != WL_CONNECTED)
     {
       Serial.printf("WiFi Failed!\n");
@@ -122,7 +131,6 @@ void setupWebserver()
             {
       StaticJsonDocument<256> doc;
       
-      doc[SSID] = myPrefs.getString(SSID);
       doc[SYNC_TIME]=isSyncTime;
       doc[TIME_ZONE]=timeZone;
       doc[NIXIE_BRIGHTNESS]=nixieBrightness;
@@ -131,8 +139,37 @@ void setupWebserver()
       doc[H24_FORMAT]=h24Format;
       doc[CELSIUS_TEMP]=celsiusTemp;
       doc[LED_BRIGHTNESS]=ledBrightness;
-      doc[LED_COLOR]=color.r<<16 | color.g<<8 | color.b;
+      
+      uint colorUint=color.r<<16 | color.g<<8 | color.b; 
+      char colorCStr[7]; 
+      sprintf(colorCStr, "#%06x",colorUint);
+      
+      doc[LED_COLOR]=String(colorCStr);
+      
       doc[LED_MODE]=ledMode;
+
+      String jsonStr;
+      serializeJson(doc,jsonStr);
+      
+      request->send(200,"application/json", jsonStr); });
+
+  server.on(
+      "/get-network-settings", HTTP_GET, [](AsyncWebServerRequest *request)
+      {
+      int n = WiFi.scanNetworks();     
+
+      StaticJsonDocument<1024> doc;
+
+      doc[SSID_PARAM] = ssid;
+
+      JsonArray ssidList = doc.createNestedArray("ssid_list");
+      
+     for(int i=0;i<n;i++)
+      {
+       ssidList.add(WiFi.SSID(i));
+      }
+
+      doc[HOSTNAME] = hostname;
 
       String jsonStr;
       serializeJson(doc,jsonStr);
@@ -141,14 +178,16 @@ void setupWebserver()
 
   server.on("/save-wifi-creds", HTTP_POST, [](AsyncWebServerRequest *request)
             {
-      Serial.println("save wifi creds called");
-      String ssid = request->getParam(SSID, true)->value();
-      Serial.printf("Ssid : %s", ssid);
+      ssid = request->getParam(SSID_PARAM, true)->value();
+      myPrefs.putString(SSID_PARAM, ssid);
+      
       String password = request->getParam(PASSWORD, true)->value();
-      Serial.printf("password : %s", ssid);
+      if(!password.isEmpty())
+      {
+        myPrefs.putString(PASSWORD, password);
+      }
 
-      myPrefs.putString(SSID, ssid);
-      myPrefs.putString(PASSWORD, password);
+      hostname = request->getParam(HOSTNAME,true)->value();
 
       request->send(200, "text/plain", "Done. ESP will restart");
       delay(3000);
@@ -204,9 +243,12 @@ void setupWebserver()
               celsiusTemp = request->getParam(CELSIUS_TEMP,true)->value().toInt();
               myPrefs.putUInt(CELSIUS_TEMP,celsiusTemp);
 
-              uint32_t colorUint=request->getParam(LED_COLOR, true)->value().toInt();
-              color = CRGB(colorUint);
-              myPrefs.putUInt(LED_COLOR, colorUint);
+              String colorStr=request->getParam(LED_COLOR, true)->value();
+              colorStr.replace("#","");
+              int colorInt = strtol(colorStr.c_str(),0,16);
+              
+              color = CRGB(colorInt);
+              myPrefs.putUInt(LED_COLOR, colorInt);
 
               ledMode = request->getParam(LED_MODE, true)->value().toInt();
               myPrefs.putUInt(LED_MODE,ledMode);
@@ -457,6 +499,9 @@ void setup()
   pinMode(DOT_2_PIN, OUTPUT);
 
   xTaskCreate(toggleDotsTask, "toggle dots", 1024, NULL, 1, NULL);
+
+  ssid = myPrefs.getString(SSID_PARAM);
+  hostname = myPrefs.getString(HOSTNAME, "nixie");
 
   setupWifi();
   setupWebserver();

@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" href="coloris.min.css"/>
 </head>
 
 <body>
@@ -18,9 +19,11 @@
         <form action="/save-wifi-creds" method="POST">
           <p>
             <label for="ssid">SSID</label>
-            <input type="text" id="ssid" name="ssid" /><br />
+            <select id="ssid" name="ssid"></select><br/>
             <label for="password">Password</label>
             <input type="text" id="password" name="password" /><br />
+            <label for="hostname">Hostname</label>
+            <input type="text" id="hostname" name="hostname" /><br />
             <input type="submit" value="Submit" />
           </p>
         </form>
@@ -79,7 +82,7 @@
             <label for="led_brightness">Led brightness</label>
             <input type="number" id="led_brightness" name="led_brightness" max="255" /><br />
             <label for="led_color">Led color</label>
-            <input type="number" id="led_color" name="led_color" /><br />
+            <input type="text" id="led_color" name="led_color" data-coloris/><br />
             <label for="led_mode">Led mode</label>
             <select id="led_mode" name="led_mode">
               <option value="0">None</option>
@@ -95,7 +98,6 @@
   </div>
   <script>
     fetch('/get-settings').then(response => response.json()).then(data => {
-      document.getElementById('ssid').value = data['ssid'];
       document.getElementById('time').value = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
       document.getElementById("date").valueAsDate = new Date();
       document.getElementById('sync_time').value = data['sync_time'];
@@ -109,7 +111,25 @@
       document.getElementById('led_color').value = data['led_color'];
       document.getElementById('led_mode').value = data['led_mode'];
     });
+
+    fetch('/get-network-settings').then(response => response.json()).then(data => {
+      var ssidElem = document.getElementById('ssid');
+      var ssidList = data['ssid_list'];
+      
+      ssidList.forEach(ssidItm => {
+        var option = document.createElement('option');
+        
+        option.text = ssidItm;
+        option.value = ssidItm;
+        
+        ssidElem.appendChild(option);
+      });  
+
+      ssidElem.value = data['ssid']
+      document.getElementById('hostname').value = data['hostname'];
+    });
   </script>
+  <script src="coloris.min.js"></script>
 </body>
 
 </html>
