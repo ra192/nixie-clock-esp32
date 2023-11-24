@@ -96,6 +96,7 @@
       </div>
     </div>
   </div>
+  <script src="coloris.min.js"></script>
   <script>
     fetch('/get-settings').then(response => response.json()).then(data => {
       document.getElementById('time').value = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
@@ -128,8 +129,12 @@
       ssidElem.value = data['ssid']
       document.getElementById('hostname').value = data['hostname'];
     });
+
+    Coloris({
+      alpha: false
+    });
   </script>
-  <script src="coloris.min.js"></script>
+  
 </body>
 
 </html>
