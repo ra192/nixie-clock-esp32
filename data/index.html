@@ -1,140 +1,226 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 
 <head>
-  <title>Pulsar nixie clock</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="data:,">
-  <link rel="stylesheet" type="text/css" href="style.css">
-  <link rel="stylesheet" href="coloris.min.css"/>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pulsar nixie clock</title>
+    <link href="bootstrap.min.css" rel="stylesheet">
+    <link href="coloris.min.css" rel="stylesheet" />
 </head>
 
 <body>
-  <div class="topnav">
-    <h1>Pulsar nixie clock</h1>
-  </div>
-  <div class="content">
-    <div class="card-grid">
-      <div class="card">
-        <form action="/save-wifi-creds" method="POST">
-          <p>
-            <label for="ssid">SSID</label>
-            <select id="ssid" name="ssid"></select><br/>
-            <label for="password">Password</label>
-            <input type="text" id="password" name="password" /><br />
-            <label for="hostname">Hostname</label>
-            <input type="text" id="hostname" name="hostname" /><br />
-            <input type="submit" value="Submit" />
-          </p>
-        </form>
-      </div>
-      <div class="card">
-        <form action="/save-time" method="POST">
-          <p>
-            <label for="time">Time</label>
-            <input type="time" id="time" name="time" /><br />
-            <label for="date">Date</label>
-            <input type="date" id="date" name="date" /><br />
-            <label for="sync_time">Sync time</label>
-            <select id="sync_time" name="sync_time">
-              <option value="1">on</option>
-              <option value="0">off</option>
-            </select><br />
-            <label for="time_zone">Time zone</label>
-            <select id="time_zone" name="time_zone">
-              <option value="EET-2EEST,M3.5.0/3,M10.5.0/4">Europe/Kiev</option>
-              <option value="GMT0BST,M3.5.0/1,M10.5.0">Europe/London</option>
-            </select><br />
-            <label for="24h_format">12/24 format</label>
-            <select id="24h_format" name="24h_format">
-              <option value="0">12h</option>
-              <option value="1">24h</option>
-            </select><br />
-            <input type="submit" value="Submit" />
-          </p>
-        </form>
-      </div>
-      <div class="card">
-        <form action="/save-settings" method="POST">
-          <p>
-            <label for="nixie_brightness">Nixie brightness</label>
-            <input type="number" id="nixie_brightness" name="nixie_brightness" min="63" max="255" /><br />
+    <div class="accordion" id="accordion">
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                    Time settings
+                </button>
+            </h2>
+            <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                    <form action="/save-time" method="POST">
+                        <div class="row mb-3">
+                            <label for="time" class="col-sm-2 col-form-label">Time</label>
+                            <div class="col-sm-4">
+                                <input type="time" class="form-control" id="time" name="time">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="date" class="col-sm-2 col-form-label">Date</label>
+                            <div class="col-sm-4">
+                                <input type="date" class="form-control" id="date" name="date">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="sync_time" class="col-sm-2 col-form-label">Sync time</label>
+                            <div class="col-sm-4">
+                                <select class="form-control" id="sync_time" name="sync_time">
+                                    <option value="1">on</option>
+                                    <option value="0">off</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="time_zone" class="col-sm-2 col-form-label">Time zone</label>
+                            <div class="col-sm-4">
+                                <select class="form-control" id="time_zone" name="time_zone">
+                                    <option value="EET-2EEST,M3.5.0/3,M10.5.0/4">Europe/Kiev</option>
+                                    <option value="GMT0BST,M3.5.0/1,M10.5.0">Europe/London</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="24h_format" class="col-sm-2 col-form-label">12/24 format</label>
+                            <div class="col-sm-4">
+                                <select class="form-control" id="24h_format" name="24h_format">
+                                    <option value="0">12h</option>
+                                    <option value="1">24h</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
 
-            <label for="display_mode">Display mode</label>
-            <select id="display_mode" name="display_mode">
-              <option value="0">Time</option>
-              <option value="1">Time and date</option>
-              <option value="2">Time, date and temperature</option>
-            </select><br />
-            <label for="transition_effect">Nixie effect</label>
-            <select id="transition_effect" name="transition_effect">
-              <option value="0">None</option>
-              <option value="1">Shift left</option>
-              <option value="2">Shift right</option>
-              <option value="3">Flip all</option>
-              <option value="4">Flip seq</option>
-            </select><br />
-            <label for="celsius_temp">Temp in C/F</label>
-            <select id="celsius_temp" name="celsius_temp">
-              <option value="0">F</option>
-              <option value="1">C</option>
-            </select><br />
-            <label for="led_brightness">Led brightness</label>
-            <input type="number" id="led_brightness" name="led_brightness" max="255" /><br />
-            <label for="led_color">Led color</label>
-            <input type="text" id="led_color" name="led_color" data-coloris/><br />
-            <label for="led_mode">Led mode</label>
-            <select id="led_mode" name="led_mode">
-              <option value="0">None</option>
-              <option value="1">Static color</option>
-              <option value="2">Rainbow</option>
-              <option value="3">Fade</option>
-            </select><br />
-            <input type="submit" value="Submit" />
-          </p>
-        </form>
-      </div>
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                    Settings
+                </button>
+            </h2>
+            <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                    <form action="/save-settings" method="POST">
+                        <div class="row mb-3">
+                            <label for="nixie_brightness" class="col-sm-2 col-form-label">Nixie brightness</label>
+                            <div class="col-sm-4">
+                                <input type="number" class="form-control" id="nixie_brightness" name="nixie_brightness"
+                                    min="32" max="255">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="display_mode" class="col-sm-2 col-form-label">Display mode</label>
+                            <div class="col-sm-4">
+                                <select class="form-control" id="display_mode" name="display_mode">
+                                    <option value="0">Time</option>
+                                    <option value="1">Time and date</option>
+                                    <option value="2">Time, date and temperature</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="transition_effect" class="col-sm-2 col-form-label">Nixie effect</label>
+                            <div class="col-sm-4">
+                                <select class="form-control" id="transition_effect" name="transition_effect">
+                                    <option value="0">None</option>
+                                    <option value="1">Shift left</option>
+                                    <option value="2">Shift right</option>
+                                    <option value="3">Flip all</option>
+                                    <option value="4">Flip seq</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="celsius_temp" class="col-sm-2 col-form-label">Temp in C/F</label>
+                            <div class="col-sm-4">
+                                <select class="form-control" id="celsius_temp" name="celsius_temp">
+                                    <option value="0">F</option>
+                                    <option value="1">C</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="led_brightness" class="col-sm-2 col-form-label">Led brightness</label>
+                            <div class="col-sm-4">
+                                <input type="number" class="form-control" id="led_brightness" name="led_brightness"
+                                    max="255">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="led_color" class="col-sm-2 col-form-label">Led color</label>
+                            <div class="col-sm-4">
+                                <input type="text" class="form-control" id="led_color" name="led_color" data-coloris>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="led_mode" class="col-sm-2 col-form-label">Led mode</label>
+                            <div class="col-sm-4">
+                                <select class="form-control" id="led_mode" name="led_mode">
+                                    <option value="0">None</option>
+                                    <option value="1">Static color</option>
+                                    <option value="2">Rainbow</option>
+                                    <option value="3">Fade</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                    WiFi settings
+                </button>
+            </h2>
+            <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                    <form action="/save-wifi-creds" method="POST">
+                        <div class="row mb-3">
+                            <label for="ssid" class="col-sm-2 col-form-label">ssid</label>
+                            <div class="col-sm-4">
+                                <select class="form-control" id="ssid" name="ssid"></select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="password" class="col-sm-2 col-form-label">Password</label>
+                            <div class="col-sm-4">
+                                <input type="password" class="form-control" id="password" name="password">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="hostname" class="col-sm-2 col-form-label">Hostname</label>
+                            <div class="col-sm-4">
+                                <input type="text" class="form-control" id="hostname" name="hostname">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-  <script src="coloris.min.js"></script>
-  <script>
-    fetch('/get-settings').then(response => response.json()).then(data => {
-      document.getElementById('time').value = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
-      document.getElementById("date").valueAsDate = new Date();
-      document.getElementById('sync_time').value = data['sync_time'];
-      document.getElementById('time_zone').value = data['time_zone'];
-      document.getElementById('nixie_brightness').value = data['nixie_brightness'];
-      document.getElementById('display_mode').value = data['display_mode'];
-      document.getElementById('transition_effect').value = data['transition_effect'];
-      document.getElementById('24h_format').value = data['24h_format'];
-      document.getElementById('celsius_temp').value = data['celsius_temp'];
-      document.getElementById('led_brightness').value = data['led_brightness'];
-      document.getElementById('led_color').value = data['led_color'];
-      document.getElementById('led_mode').value = data['led_mode'];
-    });
 
-    fetch('/get-network-settings').then(response => response.json()).then(data => {
-      var ssidElem = document.getElementById('ssid');
-      var ssidList = data['ssid_list'];
-      
-      ssidList.forEach(ssidItm => {
-        var option = document.createElement('option');
-        
-        option.text = ssidItm;
-        option.value = ssidItm;
-        
-        ssidElem.appendChild(option);
-      });  
+    <script src="bootstrap.bundle.min.js"></script>
+    <script src="coloris.min.js"></script>
+    <script>
+        fetch('/get-time').then(response => response.json()).then(data => {
+            document.getElementById('time').value = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            document.getElementById("date").valueAsDate = new Date();
+            document.getElementById('sync_time').value = data['sync_time'];
+            document.getElementById('time_zone').value = data['time_zone'];
+            document.getElementById('24h_format').value = data['24h_format'];
+        });
 
-      ssidElem.value = data['ssid']
-      document.getElementById('hostname').value = data['hostname'];
-    });
+        fetch('/get-settings').then(response => response.json()).then(data => {
+            document.getElementById('nixie_brightness').value = data['nixie_brightness'];
+            document.getElementById('display_mode').value = data['display_mode'];
+            document.getElementById('transition_effect').value = data['transition_effect'];
+            document.getElementById('celsius_temp').value = data['celsius_temp'];
+            document.getElementById('led_brightness').value = data['led_brightness'];
+            document.getElementById('led_color').value = data['led_color'];
+            document.getElementById('led_mode').value = data['led_mode'];
+        });
 
-    Coloris({
-      alpha: false
-    });
-  </script>
-  
+        fetch('/get-network-settings').then(response => response.json()).then(data => {
+            var ssidElem = document.getElementById('ssid');
+            var ssidList = data['ssid_list'];
+
+            ssidList.forEach(ssidItm => {
+                var option = document.createElement('option');
+
+                option.text = ssidItm;
+                option.value = ssidItm;
+
+                ssidElem.appendChild(option);
+            });
+
+            ssidElem.value = data['ssid']
+            document.getElementById('hostname').value = data['hostname'];
+        });
+
+        Coloris({
+            alpha: false
+        });
+    </script>
 </body>
 
 </html>

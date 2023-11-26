@@ -102,11 +102,8 @@ void setupWifi()
   {
     String password = myPrefs.getString(PASSWORD);
 
-    WiFi.mode(WIFI_STA);
-
-    WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
     WiFi.setHostname(hostname.c_str());
-
+    WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
 
     if (WiFi.waitForConnectResult() != WL_CONNECTED)
@@ -131,12 +128,9 @@ void setupWebserver()
             {
       StaticJsonDocument<256> doc;
       
-      doc[SYNC_TIME]=isSyncTime;
-      doc[TIME_ZONE]=timeZone;
       doc[NIXIE_BRIGHTNESS]=nixieBrightness;
       doc[DISPLAY_MODE]=displayMode;
       doc[TRANSITION_EFFECT]=transitionEffect;
-      doc[H24_FORMAT]=h24Format;
       doc[CELSIUS_TEMP]=celsiusTemp;
       doc[LED_BRIGHTNESS]=ledBrightness;
       
@@ -147,6 +141,19 @@ void setupWebserver()
       doc[LED_COLOR]=String(colorCStr);
       
       doc[LED_MODE]=ledMode;
+
+      String jsonStr;
+      serializeJson(doc,jsonStr);
+      
+      request->send(200,"application/json", jsonStr); });
+
+  server.on("/get-time", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+      StaticJsonDocument<256> doc;
+      
+      doc[SYNC_TIME]=isSyncTime;
+      doc[TIME_ZONE]=timeZone;
+      doc[H24_FORMAT]=h24Format;
 
       String jsonStr;
       serializeJson(doc,jsonStr);
