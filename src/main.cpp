@@ -45,6 +45,11 @@
 
 #define DOT_1_PIN 2
 #define DOT_2_PIN 23
+#define DOT_MODE "dot_mode"
+
+#define DOT_OFF_MODE 0
+#define DOT_ON_MODE 1
+#define DOT_BLINK_MODE 1
 
 #define LED_COUNT 6
 #define LED_PIN 27
@@ -80,6 +85,8 @@ uint8_t transitionEffect;
 
 uint8_t h24Format;
 uint8_t celsiusTemp;
+
+uint8_t dotMode;
 
 CRGB leds[LED_COUNT];
 uint8_t ledBrightness;
@@ -132,6 +139,7 @@ void setupWebserver()
       doc[DISPLAY_MODE]=displayMode;
       doc[TRANSITION_EFFECT]=transitionEffect;
       doc[CELSIUS_TEMP]=celsiusTemp;
+      doc[DOT_MODE]=dotMode;
       doc[LED_BRIGHTNESS]=ledBrightness;
       
       uint colorUint=color.r<<16 | color.g<<8 | color.b; 
@@ -250,6 +258,9 @@ void setupWebserver()
               celsiusTemp = request->getParam(CELSIUS_TEMP,true)->value().toInt();
               myPrefs.putUInt(CELSIUS_TEMP,celsiusTemp);
 
+              dotMode = request->getParam(DOT_MODE, true)->value().toInt();
+              myPrefs.putUInt(DOT_MODE,dotMode);
+
               String colorStr=request->getParam(LED_COLOR, true)->value();
               colorStr.replace("#","");
               int colorInt = strtol(colorStr.c_str(),0,16);
@@ -340,7 +351,7 @@ void updateNixieTask(void *params)
 
         if (celsiusTemp)
         {
-          doTransition(EMPTY_DIGIT, temperature.AsCentiDegC() / 1000, temperature.AsCentiDegC() % 1000 / 100, temperature.AsCentiDegC() % 100 / 10, temperature.AsCentiDegC() % 10, EMPTY_DIGIT);
+          doTransition(EMPTY_DIGIT, EMPTY_DIGIT, temperature.AsCentiDegC() / 1000, temperature.AsCentiDegC() % 1000 / 100, temperature.AsCentiDegC() % 100 / 10, EMPTY_DIGIT);
         }
         else
         {
@@ -348,7 +359,7 @@ void updateNixieTask(void *params)
           int temperatureInF_Int = (int)temperatureInF;
           int temperatureInF_Centi = (temperatureInF - temperatureInF_Int) * 100;
 
-          doTransition(EMPTY_DIGIT, temperatureInF_Int / 10, temperatureInF_Int % 10, temperatureInF_Centi / 10, temperatureInF_Centi % 10, EMPTY_DIGIT);
+          doTransition(EMPTY_DIGIT, EMPTY_DIGIT, temperatureInF_Int / 10, temperatureInF_Int % 10, temperatureInF_Centi / 10, EMPTY_DIGIT);
         }
         vTaskDelay(2000);
 
@@ -375,17 +386,32 @@ void toggleDotsTask(void *params)
   boolean isOn = 0;
   for (;;)
   {
-    if (isOn)
+    switch (dotMode)
     {
+    case DOT_OFF_MODE:
       digitalWrite(DOT_1_PIN, LOW);
       digitalWrite(DOT_2_PIN, LOW);
-      isOn = false;
-    }
-    else
-    {
+      break;
+
+    case DOT_ON_MODE:
       digitalWrite(DOT_1_PIN, HIGH);
       digitalWrite(DOT_2_PIN, HIGH);
-      isOn = true;
+      break;
+
+    default:
+      if (isOn)
+      {
+        digitalWrite(DOT_1_PIN, LOW);
+        digitalWrite(DOT_2_PIN, LOW);
+        isOn = false;
+      }
+      else
+      {
+        digitalWrite(DOT_1_PIN, HIGH);
+        digitalWrite(DOT_2_PIN, HIGH);
+        isOn = true;
+      }
+      break;
     }
     vTaskDelay(500 / portTICK_PERIOD_MS);
   }
@@ -504,6 +530,8 @@ void setup()
 
   pinMode(DOT_1_PIN, OUTPUT);
   pinMode(DOT_2_PIN, OUTPUT);
+
+  dotMode = myPrefs.getUInt(DOT_MODE, 2);
 
   xTaskCreate(toggleDotsTask, "toggle dots", 1024, NULL, 1, NULL);
 
