@@ -21,7 +21,7 @@
 
 #define HOSTNAME "hostname"
 
-#define NIXIE_BRIGHTNESS "nixie_brightness"
+#define NIXIE_BRIGHTNESS "nixie_bright"
 
 #define SYNC_TIME "sync_time"
 #define TIME_ZONE "time_zone"
@@ -32,7 +32,7 @@
 #define TIME_DATE_DISP_MODE 1
 #define TIME_DATE_TEMP_DISP_MODE 2
 
-#define TRANSITION_EFFECT "transition_effect"
+#define TRANSITION_EFFECT "trans_effect"
 
 #define NO_TRANSITION_EFFECT 0
 #define SHIFT_LEFT_TRANSITION_EFFECT 1
@@ -53,7 +53,7 @@
 
 #define LED_COUNT 6
 #define LED_PIN 27
-#define LED_BRIGHTNESS "led_brightness"
+#define LED_BRIGHTNESS "led_bright"
 #define LED_COLOR "led_color"
 #define LED_MODE "led_mode"
 

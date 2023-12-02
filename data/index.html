@@ -77,9 +77,9 @@
                 <div class="accordion-body">
                     <form action="/save-settings" method="POST">
                         <div class="row mb-3">
-                            <label for="nixie_brightness" class="col-sm-2 col-form-label">Nixie brightness</label>
+                            <label for="nixie_bright" class="col-sm-2 col-form-label">Nixie brightness</label>
                             <div class="col-sm-4">
-                                <input type="number" class="form-control" id="nixie_brightness" name="nixie_brightness"
+                                <input type="number" class="form-control" id="nixie_bright" name="nixie_bright"
                                     min="32" max="255">
                             </div>
                         </div>
@@ -94,9 +94,9 @@
                             </div>
                         </div>
                         <div class="row mb-3">
-                            <label for="transition_effect" class="col-sm-2 col-form-label">Nixie effect</label>
+                            <label for="trans_effect" class="col-sm-2 col-form-label">Nixie effect</label>
                             <div class="col-sm-4">
-                                <select class="form-select" id="transition_effect" name="transition_effect">
+                                <select class="form-select" id="trans_effect" name="trans_effect">
                                     <option value="0">None</option>
                                     <option value="1">Shift left</option>
                                     <option value="2">Shift right</option>
@@ -125,9 +125,9 @@
                             </div>
                         </div>
                         <div class="row mb-3">
-                            <label for="led_brightness" class="col-sm-2 col-form-label">Led brightness</label>
+                            <label for="led_bright" class="col-sm-2 col-form-label">Led brightness</label>
                             <div class="col-sm-4">
-                                <input type="number" class="form-control" id="led_brightness" name="led_brightness"
+                                <input type="number" class="form-control" id="led_bright" name="led_bright"
                                     max="255">
                             </div>
                         </div>
@@ -201,12 +201,12 @@
         });
 
         fetch('/get-settings').then(response => response.json()).then(data => {
-            document.getElementById('nixie_brightness').value = data['nixie_brightness'];
+            document.getElementById('nixie_bright').value = data['nixie_bright'];
             document.getElementById('display_mode').value = data['display_mode'];
-            document.getElementById('transition_effect').value = data['transition_effect'];
+            document.getElementById('trans_effect').value = data['trans_effect'];
             document.getElementById('celsius_temp').value = data['celsius_temp'];
             document.getElementById('dot_mode').value = data['dot_mode'];
-            document.getElementById('led_brightness').value = data['led_brightness'];
+            document.getElementById('led_bright').value = data['led_bright'];
             document.getElementById('led_color').value = data['led_color'];
             document.getElementById('led_mode').value = data['led_mode'];
         });
