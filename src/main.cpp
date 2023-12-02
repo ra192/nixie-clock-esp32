@@ -8,7 +8,6 @@
 #include "SPIFFS.h"
 #include "Preferences.h"
 
-#include <nixie.h>
 #include <FastLED.h>
 
 #include "time.h"
@@ -16,23 +15,12 @@
 #include <Wire.h> // must be included here so that Arduino library object file references work
 #include <RtcDS3231.h>
 
-#define SSID_PARAM "ssid"
-#define PASSWORD "password"
-
-#define HOSTNAME "hostname"
-
-#define NIXIE_BRIGHTNESS "nixie_bright"
-
-#define SYNC_TIME "sync_time"
-#define TIME_ZONE "time_zone"
-
-#define DISPLAY_MODE "display_mode"
+#include <appPreferences.h>
+#include <nixie.h>
 
 #define TIME_DISP_MODE 0
 #define TIME_DATE_DISP_MODE 1
 #define TIME_DATE_TEMP_DISP_MODE 2
-
-#define TRANSITION_EFFECT "trans_effect"
 
 #define NO_TRANSITION_EFFECT 0
 #define SHIFT_LEFT_TRANSITION_EFFECT 1
@@ -40,12 +28,8 @@
 #define FLIP_ALL_TRANSITION_EFFECT 3
 #define FLIP_SEQ_TRANSITION_EFFECT 4
 
-#define H24_FORMAT "24h_format"
-#define CELSIUS_TEMP "celsius_temp"
-
 #define DOT_1_PIN 2
 #define DOT_2_PIN 23
-#define DOT_MODE "dot_mode"
 
 #define DOT_OFF_MODE 0
 #define DOT_ON_MODE 1
@@ -53,9 +37,6 @@
 
 #define LED_COUNT 6
 #define LED_PIN 27
-#define LED_BRIGHTNESS "led_bright"
-#define LED_COLOR "led_color"
-#define LED_MODE "led_mode"
 
 #define LED_MODE_OFF 0
 #define LED_MODE_STATIC 1
@@ -64,35 +45,17 @@
 
 Preferences myPrefs;
 
-String ssid;
-String hostname;
-
 AsyncWebServer server(80);
 
 Nixie nixie;
-uint8_t nixieBrightness;
 
 RtcDS3231<TwoWire> Rtc(Wire);
 RtcDateTime now;
 RtcTemperature temperature;
 
-int isSyncTime;
-String timeZone;
-
-uint8_t displayMode;
-
-uint8_t transitionEffect;
-
-uint8_t h24Format;
-uint8_t celsiusTemp;
-
-uint8_t dotMode;
-
 CRGB leds[LED_COUNT];
-uint8_t ledBrightness;
-CRGB color;
 
-uint8_t ledMode;
+CRGB color;
 
 void startAP()
 {
