@@ -43,7 +43,7 @@
 #define LED_MODE_RAINBOW 2
 #define LED_MODE_FADE 3
 
-Preferences myPrefs;
+Preferences appPrefs;
 
 AsyncWebServer server(80);
 
@@ -68,9 +68,9 @@ void startAP()
 
 void setupWifi()
 {
-  if (!ssid.isEmpty() && myPrefs.isKey(PASSWORD))
+  if (!ssid.isEmpty() && appPrefs.isKey(PASSWORD))
   {
-    String password = myPrefs.getString(PASSWORD);
+    String password = appPrefs.getString(PASSWORD);
 
     WiFi.setHostname(hostname.c_str());
     WiFi.mode(WIFI_STA);
@@ -157,12 +157,12 @@ void setupWebserver()
   server.on("/save-wifi-creds", HTTP_POST, [](AsyncWebServerRequest *request)
             {
       ssid = request->getParam(SSID_PARAM, true)->value();
-      myPrefs.putString(SSID_PARAM, ssid);
+      appPrefs.putString(SSID_PARAM, ssid);
       
       String password = request->getParam(PASSWORD, true)->value();
       if(!password.isEmpty())
       {
-        myPrefs.putString(PASSWORD, password);
+        appPrefs.putString(PASSWORD, password);
       }
 
       hostname = request->getParam(HOSTNAME,true)->value();
@@ -190,15 +190,15 @@ void setupWebserver()
     Rtc.SetDateTime(updatedTime);
 
     isSyncTime = request->getParam(SYNC_TIME, true)->value().toInt();
-    myPrefs.putInt(SYNC_TIME, isSyncTime);
+    appPrefs.putInt(SYNC_TIME, isSyncTime);
 
     timeZone = request->getParam(TIME_ZONE, true)->value();
-    myPrefs.putString(TIME_ZONE, timeZone);
+    appPrefs.putString(TIME_ZONE, timeZone);
 
     configTzTime(timeZone.c_str(), "pool.ntp.org");
 
     h24Format = request->getParam(H24_FORMAT,true)->value().toInt();
-    myPrefs.putUInt(H24_FORMAT,h24Format);
+    appPrefs.putUInt(H24_FORMAT,h24Format);
 
     request->redirect("/"); });
 
@@ -206,33 +206,33 @@ void setupWebserver()
             { 
               nixieBrightness = request->getParam(NIXIE_BRIGHTNESS,true)->value().toInt();
               nixie.setBrightness(nixieBrightness);
-              myPrefs.putUInt(NIXIE_BRIGHTNESS,nixieBrightness);
+              appPrefs.putUInt(NIXIE_BRIGHTNESS,nixieBrightness);
 
               transitionEffect = request->getParam(TRANSITION_EFFECT, true)->value().toInt();
-              myPrefs.putUInt(TRANSITION_EFFECT, transitionEffect);
+              appPrefs.putUInt(TRANSITION_EFFECT, transitionEffect);
 
               displayMode = request->getParam(DISPLAY_MODE,true)->value().toInt();
-              myPrefs.putUInt(DISPLAY_MODE, displayMode);
+              appPrefs.putUInt(DISPLAY_MODE, displayMode);
 
               ledBrightness = request->getParam(LED_BRIGHTNESS,true)->value().toInt();
               FastLED.setBrightness(ledBrightness);
-              myPrefs.putUInt(LED_BRIGHTNESS,ledBrightness);
+              appPrefs.putUInt(LED_BRIGHTNESS,ledBrightness);
 
               celsiusTemp = request->getParam(CELSIUS_TEMP,true)->value().toInt();
-              myPrefs.putUInt(CELSIUS_TEMP,celsiusTemp);
+              appPrefs.putUInt(CELSIUS_TEMP,celsiusTemp);
 
               dotMode = request->getParam(DOT_MODE, true)->value().toInt();
-              myPrefs.putUInt(DOT_MODE,dotMode);
+              appPrefs.putUInt(DOT_MODE,dotMode);
 
               String colorStr=request->getParam(LED_COLOR, true)->value();
               colorStr.replace("#","");
               int colorInt = strtol(colorStr.c_str(),0,16);
               
               color = CRGB(colorInt);
-              myPrefs.putUInt(LED_COLOR, colorInt);
+              appPrefs.putUInt(LED_COLOR, colorInt);
 
               ledMode = request->getParam(LED_MODE, true)->value().toInt();
-              myPrefs.putUInt(LED_MODE,ledMode);
+              appPrefs.putUInt(LED_MODE,ledMode);
 
               request->redirect("/"); });
 
@@ -449,7 +449,7 @@ void setup()
 {
   Serial.begin(115200);
 
-  myPrefs.begin("myPrefs", false);
+  appPrefs.begin("myPrefs", false);
 
   // Initialize SPIFFS
   if (!SPIFFS.begin(true))
@@ -464,50 +464,50 @@ void setup()
 
   xTaskCreate(updateTimeTask, "update time", 2048, NULL, 1, NULL);
 
-  nixieBrightness = myPrefs.getUInt(NIXIE_BRIGHTNESS, 255);
+  nixieBrightness = appPrefs.getUInt(NIXIE_BRIGHTNESS, 255);
   nixie.setBrightness(nixieBrightness);
   nixie.begin();
 
-  displayMode = myPrefs.getUInt(DISPLAY_MODE, TIME_DISP_MODE);
-  transitionEffect = myPrefs.getUInt(TRANSITION_EFFECT, SHIFT_LEFT_TRANSITION_EFFECT);
-  h24Format = myPrefs.getUInt(H24_FORMAT, 1);
-  celsiusTemp = myPrefs.getUInt(CELSIUS_TEMP, 1);
+  displayMode = appPrefs.getUInt(DISPLAY_MODE, TIME_DISP_MODE);
+  transitionEffect = appPrefs.getUInt(TRANSITION_EFFECT, SHIFT_LEFT_TRANSITION_EFFECT);
+  h24Format = appPrefs.getUInt(H24_FORMAT, 1);
+  celsiusTemp = appPrefs.getUInt(CELSIUS_TEMP, 1);
 
   xTaskCreate(updateNixieTask, "update nixie", 1024, NULL, 1, NULL);
 
   FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, LED_COUNT);
-  ledBrightness = myPrefs.getUInt(LED_BRIGHTNESS, 128);
+  ledBrightness = appPrefs.getUInt(LED_BRIGHTNESS, 128);
 
-  if (myPrefs.isKey(LED_COLOR))
+  if (appPrefs.isKey(LED_COLOR))
   {
-    color = CRGB(myPrefs.getUInt(LED_COLOR));
+    color = CRGB(appPrefs.getUInt(LED_COLOR));
   }
   else
   {
     color = CRGB::Red;
   }
 
-  ledMode = myPrefs.getUInt(LED_MODE, LED_MODE_STATIC);
+  ledMode = appPrefs.getUInt(LED_MODE, LED_MODE_STATIC);
 
   xTaskCreate(updateLedsTask, "update leds", 1024, NULL, 4, NULL);
 
   pinMode(DOT_1_PIN, OUTPUT);
   pinMode(DOT_2_PIN, OUTPUT);
 
-  dotMode = myPrefs.getUInt(DOT_MODE, 2);
+  dotMode = appPrefs.getUInt(DOT_MODE, 2);
 
   xTaskCreate(toggleDotsTask, "toggle dots", 1024, NULL, 1, NULL);
 
-  ssid = myPrefs.getString(SSID_PARAM);
-  hostname = myPrefs.getString(HOSTNAME, "nixie");
+  ssid = appPrefs.getString(SSID_PARAM);
+  hostname = appPrefs.getString(HOSTNAME, "nixie");
 
   setupWifi();
   setupWebserver();
 
   if (WiFi.isConnected())
   {
-    isSyncTime = myPrefs.getInt(SYNC_TIME, 1);
-    timeZone = myPrefs.getString(TIME_ZONE, "Etc/GMT");
+    isSyncTime = appPrefs.getInt(SYNC_TIME, 1);
+    timeZone = appPrefs.getString(TIME_ZONE, "Etc/GMT");
 
     configTzTime(timeZone.c_str(), "pool.ntp.org");
 
