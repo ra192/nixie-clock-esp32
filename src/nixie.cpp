@@ -3,7 +3,7 @@
 
 const uint8_t digitCodes[] = {1, 0, 9, 8, 7, 6, 5, 4, 3, 2, EMPTY_DIGIT};
 
-void Nixie::createShiftArray(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6, uint8_t *resArr)
+void NixieClass::createShiftArray(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6, uint8_t *resArr)
 {
     resArr[0] = digitValues[0];
     resArr[1] = digitValues[1];
@@ -20,7 +20,7 @@ void Nixie::createShiftArray(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t d
     resArr[12] = digitCodes[dig6];
 }
 
-void Nixie::onDigit(uint8_t num)
+void NixieClass::onDigit(uint8_t num)
 {
     digitalWrite(DEC_A0_PIN, digitValues[num] & 0x01);
     digitalWrite(DEC_A1_PIN, digitValues[num] >> 1 & 0x01);
@@ -30,12 +30,12 @@ void Nixie::onDigit(uint8_t num)
     ledcWrite(PwmLChannels[num], brightness);
 }
 
-void Nixie::offDigit(uint8_t num)
+void NixieClass::offDigit(uint8_t num)
 {
     ledcWrite(PwmLChannels[num], 0);
 }
 
-void Nixie::setDigVals(uint8_t *digs, uint8_t startInd)
+void NixieClass::setDigVals(uint8_t *digs, uint8_t startInd)
 {
     digitValues[0] = digs[startInd];
     digitValues[1] = digs[startInd + 1];
@@ -45,9 +45,9 @@ void Nixie::setDigVals(uint8_t *digs, uint8_t startInd)
     digitValues[5] = digs[startInd + 5];
 }
 
-void Nixie::refreshTask(void *params)
+void NixieClass::refreshTask(void *params)
 {
-    Nixie *nixie = (Nixie *)params;
+    NixieClass *nixie = (NixieClass*)params;
     bool isOn = false;
     uint8_t current = 4;
 
@@ -77,12 +77,12 @@ void Nixie::refreshTask(void *params)
     }
 }
 
-Nixie::Nixie()
+NixieClass::NixieClass()
 {
     setBrightness(255);
 }
 
-void Nixie::begin()
+void NixieClass::begin()
 {
     pinMode(DEC_A0_PIN, OUTPUT);
     pinMode(DEC_A1_PIN, OUTPUT);
@@ -110,7 +110,7 @@ void Nixie::begin()
     xTaskCreate(refreshTask, "refresh nixie", 1024, this, configMAX_PRIORITIES - 1, NULL);
 }
 
-void Nixie::flip_all(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
+void NixieClass::flip_all(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
 {
     for (int i = 0; i < 10; i++)
     {
@@ -120,7 +120,7 @@ void Nixie::flip_all(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uin
     setDigits(dig1, dig2, dig3, dig4, dig5, dig6);
 }
 
-void Nixie::flip_seq(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
+void NixieClass::flip_seq(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
 {
     uint8_t digArr[DIGITS_SIZE] = {dig1, dig2, dig3, dig4, dig5, dig6};
     for (int i = 0; i < DIGITS_SIZE; i++)
@@ -135,12 +135,12 @@ void Nixie::flip_seq(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uin
     }
 }
 
-void Nixie::setBrightness(uint8_t brightness)
+void NixieClass::setBrightness(uint8_t brightness)
 {
     this->brightness = brightness;
 }
 
-void Nixie::setDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
+void NixieClass::setDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
 {
     digitValues[0] = digitCodes[dig1];
     digitValues[1] = digitCodes[dig2];
@@ -150,7 +150,7 @@ void Nixie::setDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, ui
     digitValues[5] = digitCodes[dig6];
 }
 
-void Nixie::shiftLeft(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
+void NixieClass::shiftLeft(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
 {
     uint8_t shiftDigs[2 * DIGITS_SIZE + 1];
     createShiftArray(dig1, dig2, dig3, dig4, dig5, dig6, shiftDigs);
@@ -162,7 +162,7 @@ void Nixie::shiftLeft(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, ui
     }
 }
 
-void Nixie::shiftRight(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
+void NixieClass::shiftRight(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
 {
     uint8_t shiftDigs[2 * DIGITS_SIZE + 1];
     createShiftArray(dig1, dig2, dig3, dig4, dig5, dig6, shiftDigs);
@@ -173,3 +173,5 @@ void Nixie::shiftRight(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, u
         vTaskDelay(SHIFT_DELAY_MS);
     }
 }
+
+NixieClass Nixie;

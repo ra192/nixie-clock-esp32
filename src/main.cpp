@@ -5,8 +5,7 @@
 #include "AsyncJson.h"
 #include "ArduinoJson.h"
 
-#include "SPIFFS.h"
-#include "Preferences.h"
+#include <SPIFFS.h>
 
 #include <FastLED.h>
 
@@ -43,11 +42,7 @@
 #define LED_MODE_RAINBOW 2
 #define LED_MODE_FADE 3
 
-Preferences appPrefs;
-
 AsyncWebServer server(80);
-
-Nixie nixie;
 
 RtcDS3231<TwoWire> Rtc(Wire);
 RtcDateTime now;
@@ -63,18 +58,19 @@ void startAP()
   // Connect to Wi-Fi network with SSID and password
   Serial.println("Setting AP (Access Point)");
   // NULL sets an open Access Point
-  WiFi.softAP(hostname.c_str(), NULL);
+  WiFi.softAP(AppPreferences.getHostname().c_str(), NULL);
 }
 
 void setupWifi()
 {
-  if (!ssid.isEmpty() && appPrefs.isKey(PASSWORD))
+  String ssid = AppPreferences.getSSID();
+  if (!ssid.isEmpty())
   {
-    String password = appPrefs.getString(PASSWORD);
+    String password = AppPreferences.getPassword();
 
-    WiFi.setHostname(hostname.c_str());
+    WiFi.setHostname(AppPreferences.getHostname().c_str());
     WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
+    WiFi.begin(AppPreferences.getSSID(), password);
 
     if (WiFi.waitForConnectResult() != WL_CONNECTED)
     {
@@ -98,20 +94,19 @@ void setupWebserver()
             {
       StaticJsonDocument<256> doc;
       
-      doc[NIXIE_BRIGHTNESS]=nixieBrightness;
-      doc[DISPLAY_MODE]=displayMode;
-      doc[TRANSITION_EFFECT]=transitionEffect;
-      doc[CELSIUS_TEMP]=celsiusTemp;
-      doc[DOT_MODE]=dotMode;
-      doc[LED_BRIGHTNESS]=ledBrightness;
+      doc[NIXIE_BRIGHTNESS]=AppPreferences.getNixieBrightness();
+      doc[DISPLAY_MODE]=AppPreferences.getDisplayMode();
+      doc[TRANSITION_EFFECT]=AppPreferences.getTransitionEffect();
+      doc[CELSIUS_TEMP]=AppPreferences.getCelsiusTemp();
+      doc[DOT_MODE]=AppPreferences.getDotMode();
+      doc[LED_BRIGHTNESS]=AppPreferences.getLedBrightness();
       
-      uint colorUint=color.r<<16 | color.g<<8 | color.b; 
       char colorCStr[7]; 
-      sprintf(colorCStr, "#%06x",colorUint);
+      sprintf(colorCStr, "#%06x",AppPreferences.getLedColor());
       
       doc[LED_COLOR]=String(colorCStr);
       
-      doc[LED_MODE]=ledMode;
+      doc[LED_MODE]=AppPreferences.getLedMode();
 
       String jsonStr;
       serializeJson(doc,jsonStr);
@@ -122,9 +117,9 @@ void setupWebserver()
             {
       StaticJsonDocument<256> doc;
       
-      doc[SYNC_TIME]=isSyncTime;
-      doc[TIME_ZONE]=timeZone;
-      doc[H24_FORMAT]=h24Format;
+      doc[SYNC_TIME]=AppPreferences.getSyncTime();
+      doc[TIME_ZONE]=AppPreferences.getTimeZone();
+      doc[H24_FORMAT]=AppPreferences.getH24Format();
 
       String jsonStr;
       serializeJson(doc,jsonStr);
@@ -138,7 +133,7 @@ void setupWebserver()
 
       StaticJsonDocument<1024> doc;
 
-      doc[SSID_PARAM] = ssid;
+      doc[SSID_PARAM] = AppPreferences.getSSID();
 
       JsonArray ssidList = doc.createNestedArray("ssid_list");
       
@@ -147,7 +142,7 @@ void setupWebserver()
        ssidList.add(WiFi.SSID(i));
       }
 
-      doc[HOSTNAME] = hostname;
+      doc[HOSTNAME] = AppPreferences.getHostname();
 
       String jsonStr;
       serializeJson(doc,jsonStr);
@@ -156,16 +151,17 @@ void setupWebserver()
 
   server.on("/save-wifi-creds", HTTP_POST, [](AsyncWebServerRequest *request)
             {
-      ssid = request->getParam(SSID_PARAM, true)->value();
-      appPrefs.putString(SSID_PARAM, ssid);
+      String ssid = request->getParam(SSID_PARAM, true)->value();
+      AppPreferences.setSSID(ssid);
       
       String password = request->getParam(PASSWORD, true)->value();
       if(!password.isEmpty())
       {
-        appPrefs.putString(PASSWORD, password);
+        AppPreferences.setPassword(password);
       }
 
-      hostname = request->getParam(HOSTNAME,true)->value();
+      String hostname = request->getParam(HOSTNAME,true)->value();
+      AppPreferences.setHostname(hostname);
 
       request->send(200, "text/plain", "Done. ESP will restart");
       delay(3000);
@@ -189,50 +185,50 @@ void setupWebserver()
 
     Rtc.SetDateTime(updatedTime);
 
-    isSyncTime = request->getParam(SYNC_TIME, true)->value().toInt();
-    appPrefs.putInt(SYNC_TIME, isSyncTime);
+    uint8_t syncTime = request->getParam(SYNC_TIME, true)->value().toInt();
+    AppPreferences.setSyncTime(syncTime);
 
-    timeZone = request->getParam(TIME_ZONE, true)->value();
-    appPrefs.putString(TIME_ZONE, timeZone);
+    String timeZone = request->getParam(TIME_ZONE, true)->value();
+    AppPreferences.setTimeZone(timeZone);
 
     configTzTime(timeZone.c_str(), "pool.ntp.org");
 
-    h24Format = request->getParam(H24_FORMAT,true)->value().toInt();
-    appPrefs.putUInt(H24_FORMAT,h24Format);
+    uint8_t h24Format = request->getParam(H24_FORMAT,true)->value().toInt();
+    AppPreferences.setH24Format(h24Format);
 
     request->redirect("/"); });
 
   server.on("/save-settings", HTTP_POST, [](AsyncWebServerRequest *request)
             { 
-              nixieBrightness = request->getParam(NIXIE_BRIGHTNESS,true)->value().toInt();
-              nixie.setBrightness(nixieBrightness);
-              appPrefs.putUInt(NIXIE_BRIGHTNESS,nixieBrightness);
+              uint8_t nixieBrightness = request->getParam(NIXIE_BRIGHTNESS,true)->value().toInt();
+              Nixie.setBrightness(nixieBrightness);
+              AppPreferences.setNixieBrightness(nixieBrightness);
 
-              transitionEffect = request->getParam(TRANSITION_EFFECT, true)->value().toInt();
-              appPrefs.putUInt(TRANSITION_EFFECT, transitionEffect);
+              uint8_t transitionEffect = request->getParam(TRANSITION_EFFECT, true)->value().toInt();
+              AppPreferences.setTransitionEffect(transitionEffect);
 
-              displayMode = request->getParam(DISPLAY_MODE,true)->value().toInt();
-              appPrefs.putUInt(DISPLAY_MODE, displayMode);
+              uint8_t displayMode = request->getParam(DISPLAY_MODE,true)->value().toInt();
+              AppPreferences.setDisplayMode(displayMode);
 
-              ledBrightness = request->getParam(LED_BRIGHTNESS,true)->value().toInt();
+              uint8_t celsiusTemp = request->getParam(CELSIUS_TEMP,true)->value().toInt();
+              AppPreferences.setCelsiusTemp(celsiusTemp);
+
+              uint8_t dotMode = request->getParam(DOT_MODE, true)->value().toInt();
+              AppPreferences.setDotMode(dotMode);
+
+              uint8_t ledBrightness = request->getParam(LED_BRIGHTNESS,true)->value().toInt();
               FastLED.setBrightness(ledBrightness);
-              appPrefs.putUInt(LED_BRIGHTNESS,ledBrightness);
-
-              celsiusTemp = request->getParam(CELSIUS_TEMP,true)->value().toInt();
-              appPrefs.putUInt(CELSIUS_TEMP,celsiusTemp);
-
-              dotMode = request->getParam(DOT_MODE, true)->value().toInt();
-              appPrefs.putUInt(DOT_MODE,dotMode);
+              AppPreferences.setLedBrightness(ledBrightness);
 
               String colorStr=request->getParam(LED_COLOR, true)->value();
               colorStr.replace("#","");
               int colorInt = strtol(colorStr.c_str(),0,16);
               
               color = CRGB(colorInt);
-              appPrefs.putUInt(LED_COLOR, colorInt);
+              AppPreferences.setLedColor(colorInt);
 
-              ledMode = request->getParam(LED_MODE, true)->value().toInt();
-              appPrefs.putUInt(LED_MODE,ledMode);
+              uint8_t ledMode = request->getParam(LED_MODE, true)->value().toInt();
+              AppPreferences.setLedMode(ledMode);
 
               request->redirect("/"); });
 
@@ -246,7 +242,7 @@ void updateTimeTask(void *params)
   for (;;)
   {
     now = Rtc.GetDateTime();
-    if (displayMode == TIME_DATE_TEMP_DISP_MODE)
+    if (AppPreferences.getDisplayMode() == TIME_DATE_TEMP_DISP_MODE)
       temperature = Rtc.GetTemperature();
     vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
@@ -254,33 +250,33 @@ void updateTimeTask(void *params)
 
 void doTransition(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
 {
-  switch (transitionEffect)
+  switch (AppPreferences.getTransitionEffect())
   {
   case SHIFT_LEFT_TRANSITION_EFFECT:
-    nixie.shiftLeft(dig1, dig2, dig3, dig4, dig5, dig6);
+    Nixie.shiftLeft(dig1, dig2, dig3, dig4, dig5, dig6);
     break;
   case SHIFT_RIGHT_TRANSITION_EFFECT:
-    nixie.shiftRight(dig1, dig2, dig3, dig4, dig5, dig6);
+    Nixie.shiftRight(dig1, dig2, dig3, dig4, dig5, dig6);
     break;
   case FLIP_ALL_TRANSITION_EFFECT:
-    nixie.flip_all(dig1, dig2, dig3, dig4, dig5, dig6);
+    Nixie.flip_all(dig1, dig2, dig3, dig4, dig5, dig6);
     break;
   case FLIP_SEQ_TRANSITION_EFFECT:
-    nixie.flip_seq(dig1, dig2, dig3, dig4, dig5, dig6);
+    Nixie.flip_seq(dig1, dig2, dig3, dig4, dig5, dig6);
     break;
   default:
-    nixie.setDigits(dig1, dig2, dig3, dig4, dig5, dig6);
+    Nixie.setDigits(dig1, dig2, dig3, dig4, dig5, dig6);
     break;
   }
 }
 
 uint8_t getHour()
 {
-  if (now.Hour() == 0 && !h24Format)
+  if (now.Hour() == 0 && !AppPreferences.getH24Format())
   {
     return 12;
   }
-  else if (now.Hour() > 12 && !h24Format)
+  else if (now.Hour() > 12 && !AppPreferences.getH24Format())
   {
     return now.Hour() - 12;
   }
@@ -297,7 +293,7 @@ void updateNixieTask(void *params)
   {
     if (now.Second() % 30 == 0)
     {
-      switch (displayMode)
+      switch (AppPreferences.getDisplayMode())
       {
       case TIME_DATE_DISP_MODE:
         doTransition(now.Day() / 10, now.Day() % 10, now.Month() / 10, now.Month() % 10, now.Year() % 100 / 10, now.Year() % 10);
@@ -312,7 +308,7 @@ void updateNixieTask(void *params)
         doTransition(now.Day() / 10, now.Day() % 10, now.Month() / 10, now.Month() % 10, now.Year() % 100 / 10, now.Year() % 10);
         vTaskDelay(2000);
 
-        if (celsiusTemp)
+        if (AppPreferences.getCelsiusTemp())
         {
           doTransition(EMPTY_DIGIT, EMPTY_DIGIT, temperature.AsCentiDegC() / 1000, temperature.AsCentiDegC() % 1000 / 100, temperature.AsCentiDegC() % 100 / 10, EMPTY_DIGIT);
         }
@@ -338,7 +334,7 @@ void updateNixieTask(void *params)
     else
     {
       hour = getHour();
-      nixie.setDigits(hour / 10, hour % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+      Nixie.setDigits(hour / 10, hour % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
       vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
   }
@@ -349,7 +345,7 @@ void toggleDotsTask(void *params)
   boolean isOn = 0;
   for (;;)
   {
-    switch (dotMode)
+    switch (AppPreferences.getDotMode())
     {
     case DOT_OFF_MODE:
       digitalWrite(DOT_1_PIN, LOW);
@@ -387,17 +383,17 @@ void updateLedsTask(void *args)
   int fadeAdd;
   for (;;)
   {
-    switch (ledMode)
+    switch (AppPreferences.getLedMode())
     {
     case LED_MODE_STATIC:
-      FastLED.setBrightness(ledBrightness);
+      FastLED.setBrightness(AppPreferences.getLedBrightness());
       FastLED.showColor(color);
       vTaskDelay(1000 / portTICK_PERIOD_MS);
       break;
 
     case LED_MODE_RAINBOW:
       hue = (hue + 1) % 256;
-      FastLED.setBrightness(ledBrightness);
+      FastLED.setBrightness(AppPreferences.getLedBrightness());
       FastLED.showColor(CHSV(hue, 255, 255));
       vTaskDelay(100 / portTICK_PERIOD_MS);
       break;
@@ -407,7 +403,7 @@ void updateLedsTask(void *args)
       {
         fadeAdd = 1;
       }
-      else if (fadeScale == ledBrightness)
+      else if (fadeScale == AppPreferences.getLedBrightness())
       {
         fadeAdd = -1;
       }
@@ -430,7 +426,7 @@ void syncTimeTask(void *params)
 {
   for (;;)
   {
-    if (isSyncTime)
+    if (AppPreferences.getSyncTime())
     {
       struct tm timeinfo;
 
@@ -449,14 +445,7 @@ void setup()
 {
   Serial.begin(115200);
 
-  appPrefs.begin("myPrefs", false);
-
-  // Initialize SPIFFS
-  if (!SPIFFS.begin(true))
-  {
-    Serial.println("An Error has occurred while mounting SPIFFS");
-    return;
-  }
+  AppPreferences.begin();
 
   Rtc.Begin();
 
@@ -464,52 +453,28 @@ void setup()
 
   xTaskCreate(updateTimeTask, "update time", 2048, NULL, 1, NULL);
 
-  nixieBrightness = appPrefs.getUInt(NIXIE_BRIGHTNESS, 255);
-  nixie.setBrightness(nixieBrightness);
-  nixie.begin();
-
-  displayMode = appPrefs.getUInt(DISPLAY_MODE, TIME_DISP_MODE);
-  transitionEffect = appPrefs.getUInt(TRANSITION_EFFECT, SHIFT_LEFT_TRANSITION_EFFECT);
-  h24Format = appPrefs.getUInt(H24_FORMAT, 1);
-  celsiusTemp = appPrefs.getUInt(CELSIUS_TEMP, 1);
+  Nixie.setBrightness(AppPreferences.getNixieBrightness());
+  Nixie.begin();
 
   xTaskCreate(updateNixieTask, "update nixie", 1024, NULL, 1, NULL);
 
   FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, LED_COUNT);
-  ledBrightness = appPrefs.getUInt(LED_BRIGHTNESS, 128);
 
-  if (appPrefs.isKey(LED_COLOR))
-  {
-    color = CRGB(appPrefs.getUInt(LED_COLOR));
-  }
-  else
-  {
-    color = CRGB::Red;
-  }
-
-  ledMode = appPrefs.getUInt(LED_MODE, LED_MODE_STATIC);
+  color = CRGB(AppPreferences.getLedColor());
 
   xTaskCreate(updateLedsTask, "update leds", 1024, NULL, 4, NULL);
 
   pinMode(DOT_1_PIN, OUTPUT);
   pinMode(DOT_2_PIN, OUTPUT);
 
-  dotMode = appPrefs.getUInt(DOT_MODE, 2);
-
   xTaskCreate(toggleDotsTask, "toggle dots", 1024, NULL, 1, NULL);
-
-  ssid = appPrefs.getString(SSID_PARAM);
-  hostname = appPrefs.getString(HOSTNAME, "nixie");
 
   setupWifi();
   setupWebserver();
 
   if (WiFi.isConnected())
   {
-    isSyncTime = appPrefs.getInt(SYNC_TIME, 1);
-    timeZone = appPrefs.getString(TIME_ZONE, "Etc/GMT");
-
-    configTzTime(timeZone.c_str(), "pool.ntp.org");
+    configTzTime(AppPreferences.getTimeZone().c_str(), "pool.ntp.org");
 
     xTaskCreate(syncTimeTask, "sync time", 2048, NULL, 1, NULL);
   }

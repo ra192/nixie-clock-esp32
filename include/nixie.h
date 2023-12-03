@@ -40,7 +40,7 @@
 const uint8_t LPins[] = {L1_PIN, L2_PIN, L3_PIN, L4_PIN, L5_PIN, L6_PIN};
 const uint8_t PwmLChannels[] = {PWM_L1_CHANNEL, PWM_L2_CHANNEL, PWM_L3_CHANNEL, PWM_L4_CHANNEL, PWM_L5_CHANNEL, PWM_L6_CHANNEL};
 
-class Nixie
+class NixieClass
 {
 private:
     uint8_t digitValues[DIGITS_SIZE];
@@ -58,7 +58,7 @@ private:
     static void refreshTask(void *params);
 
 public:
-    Nixie();
+    NixieClass();
 
     void begin();
 
@@ -74,5 +74,7 @@ public:
 
     void shiftRight(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6);
 };
+
+extern NixieClass Nixie;
 
 #endif
