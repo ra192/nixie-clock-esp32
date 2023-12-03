@@ -18,7 +18,7 @@
                     Time settings
                 </button>
             </h2>
-            <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+            <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#accordion">
                 <div class="accordion-body">
                     <form action="/save-time" method="POST">
                         <div class="row mb-3">
@@ -73,7 +73,7 @@
                     Settings
                 </button>
             </h2>
-            <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+            <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordion">
                 <div class="accordion-body">
                     <form action="/save-settings" method="POST">
                         <div class="row mb-3">
@@ -124,6 +124,22 @@
                                 </select>
                             </div>
                         </div>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                    Led settings
+                </button>
+            </h2>
+            <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordion">
+                <div class="accordion-body">
+                    <form action="/save-led-settings" method="POST">
                         <div class="row mb-3">
                             <label for="led_bright" class="col-sm-2 col-form-label">Led brightness</label>
                             <div class="col-sm-4">
@@ -157,11 +173,11 @@
         <div class="accordion-item">
             <h2 class="accordion-header">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                    data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
                     WiFi settings
                 </button>
             </h2>
-            <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+            <div id="collapseFour" class="accordion-collapse collapse" data-bs-parent="#accordion">
                 <div class="accordion-body">
                     <form action="/save-wifi-creds" method="POST">
                         <div class="row mb-3">
@@ -206,10 +222,13 @@
             document.getElementById('trans_effect').value = data['trans_effect'];
             document.getElementById('celsius_temp').value = data['celsius_temp'];
             document.getElementById('dot_mode').value = data['dot_mode'];
+        });
+
+        fetch('/get-led-settings').then(response => response.json()).then(data => {
             document.getElementById('led_bright').value = data['led_bright'];
             document.getElementById('led_color').value = data['led_color'];
             document.getElementById('led_mode').value = data['led_mode'];
-        });
+        });    
 
         fetch('/get-network-settings').then(response => response.json()).then(data => {
             var ssidElem = document.getElementById('ssid');

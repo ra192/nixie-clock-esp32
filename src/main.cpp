@@ -44,6 +44,8 @@
 #define LED_MODE_RAINBOW 2
 #define LED_MODE_FADE 3
 
+int wifiNetworksCount;
+
 AsyncWebServer server(80);
 
 RtcDS3231<TwoWire> Rtc(Wire);
@@ -97,23 +99,19 @@ void setupWifi()
 
 void setupWebserver()
 {
-  server.on("/get-settings", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
-      StaticJsonDocument<256> doc;
+  server.on(
+      "/get-network-settings", HTTP_GET, [](AsyncWebServerRequest *request)
+      {     
+      StaticJsonDocument<1024> doc;
+
+      doc[SSID_PARAM] = AppPreferences.getSSID();
+      doc[HOSTNAME] = AppPreferences.getHostname();
       
-      doc[NIXIE_BRIGHTNESS]=AppPreferences.getNixieBrightness();
-      doc[DISPLAY_MODE]=AppPreferences.getDisplayMode();
-      doc[TRANSITION_EFFECT]=AppPreferences.getTransitionEffect();
-      doc[CELSIUS_TEMP]=AppPreferences.getCelsiusTemp();
-      doc[DOT_MODE]=AppPreferences.getDotMode();
-      doc[LED_BRIGHTNESS]=AppPreferences.getLedBrightness();
-      
-      char colorCStr[7]; 
-      sprintf(colorCStr, "#%06x",AppPreferences.getLedColor());
-      
-      doc[LED_COLOR]=String(colorCStr);
-      
-      doc[LED_MODE]=AppPreferences.getLedMode();
+      JsonArray ssidList = doc.createNestedArray("ssid_list");
+      for(int i=0;i<wifiNetworksCount;i++)
+      {
+       ssidList.add(WiFi.SSID(i));
+      }
 
       String jsonStr;
       serializeJson(doc,jsonStr);
@@ -133,23 +131,32 @@ void setupWebserver()
       
       request->send(200,"application/json", jsonStr); });
 
-  server.on(
-      "/get-network-settings", HTTP_GET, [](AsyncWebServerRequest *request)
-      {
-      int n = WiFi.scanNetworks();     
-
-      StaticJsonDocument<1024> doc;
-
-      doc[SSID_PARAM] = AppPreferences.getSSID();
-
-      JsonArray ssidList = doc.createNestedArray("ssid_list");
+  server.on("/get-settings", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+      StaticJsonDocument<256> doc;
       
-     for(int i=0;i<n;i++)
-      {
-       ssidList.add(WiFi.SSID(i));
-      }
+      doc[NIXIE_BRIGHTNESS]=AppPreferences.getNixieBrightness();
+      doc[DISPLAY_MODE]=AppPreferences.getDisplayMode();
+      doc[TRANSITION_EFFECT]=AppPreferences.getTransitionEffect();
+      doc[CELSIUS_TEMP]=AppPreferences.getCelsiusTemp();
+      doc[DOT_MODE]=AppPreferences.getDotMode();
 
-      doc[HOSTNAME] = AppPreferences.getHostname();
+      String jsonStr;
+      serializeJson(doc,jsonStr);
+      
+      request->send(200,"application/json", jsonStr); });
+
+  server.on("/get-led-settings", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+      StaticJsonDocument<256> doc;
+      
+      doc[LED_BRIGHTNESS]=AppPreferences.getLedBrightness();
+      
+      char colorCStr[7]; 
+      sprintf(colorCStr, "#%06x",AppPreferences.getLedColor());
+      doc[LED_COLOR]=String(colorCStr);
+      
+      doc[LED_MODE]=AppPreferences.getLedMode();
 
       String jsonStr;
       serializeJson(doc,jsonStr);
@@ -223,6 +230,10 @@ void setupWebserver()
               uint8_t dotMode = request->getParam(DOT_MODE, true)->value().toInt();
               AppPreferences.setDotMode(dotMode);
 
+              request->redirect("/"); });
+
+  server.on("/save-led-settings", HTTP_POST, [](AsyncWebServerRequest *request)
+            { 
               uint8_t ledBrightness = request->getParam(LED_BRIGHTNESS,true)->value().toInt();
               FastLED.setBrightness(ledBrightness);
               AppPreferences.setLedBrightness(ledBrightness);
@@ -485,6 +496,8 @@ void setup()
 
     xTaskCreate(syncTimeTask, "sync time", 2048, NULL, 1, NULL);
   }
+
+  wifiNetworksCount = WiFi.scanNetworks();
 }
 
 void loop()

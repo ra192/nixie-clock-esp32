@@ -57,7 +57,7 @@ private:
     uint8_t dotMode;
 
     uint8_t ledBrightness;
-    uint8_t ledColor;
+    uint32_t ledColor;
     uint8_t ledMode;
 
 public:
@@ -111,9 +111,9 @@ public:
 
     void setLedBrightness(uint8_t val);
 
-    uint8_t getLedColor(void);
+    uint32_t getLedColor(void);
 
-    void setLedColor(uint8_t val);
+    void setLedColor(uint32_t val);
 
     uint8_t getLedMode(void);
 

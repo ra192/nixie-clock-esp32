@@ -160,12 +160,12 @@ void AppPreferencesClass::setLedBrightness(uint8_t val)
     preferences.putUInt(LED_BRIGHTNESS, val);
 }
 
-uint8_t AppPreferencesClass::getLedColor(void)
+uint32_t AppPreferencesClass::getLedColor(void)
 {
     return ledColor;
 }
 
-void AppPreferencesClass::setLedColor(uint8_t val)
+void AppPreferencesClass::setLedColor(uint32_t val)
 {
     ledColor = val;
     preferences.putUInt(LED_COLOR, val);
