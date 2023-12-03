@@ -1,5 +1,7 @@
 #include <Arduino.h>
 
+#include <ESPmDNS.h>
+
 #include <AsyncTCP.h>
 #include "ESPAsyncWebServer.h"
 #include "AsyncJson.h"
@@ -80,6 +82,11 @@ void setupWifi()
     else
     {
       Serial.println("Connected to wifi network");
+      if (!MDNS.begin(AppPreferences.getHostname()))
+      {
+        Serial.println("Error starting mDNS");
+        return;
+      }
     }
   }
   else
