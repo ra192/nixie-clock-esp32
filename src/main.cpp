@@ -42,7 +42,8 @@
 #define LED_MODE_OFF 0
 #define LED_MODE_STATIC 1
 #define LED_MODE_RAINBOW 2
-#define LED_MODE_FADE 3
+#define LED_MODE_RAINBOW_CHASE 3
+#define LED_MODE_FADE 4
 
 int wifiNetworksCount;
 
@@ -397,7 +398,8 @@ void toggleDotsTask(void *params)
 void updateLedsTask(void *args)
 {
   uint8_t hue;
-  uint8_t fadeScale;
+  uint8_t chaseInd;
+  uint8_t fadeBrightness;
   int fadeAdd;
   for (;;)
   {
@@ -413,23 +415,49 @@ void updateLedsTask(void *args)
       hue = (hue + 1) % 256;
       FastLED.setBrightness(AppPreferences.getLedBrightness());
       FastLED.showColor(CHSV(hue, 255, 255));
+      vTaskDelay(20 / portTICK_PERIOD_MS);
+      break;
+
+    case LED_MODE_RAINBOW_CHASE:
+      FastLED.setBrightness(AppPreferences.getLedBrightness());
+      for (int i = 0; i < LED_COUNT; i++)
+      {
+        if (i == chaseInd - 2)
+        {
+          leds[i] = CHSV((hue + 96) % 256, 255, 255);
+        }
+        else if (i == chaseInd - 1)
+        {
+          leds[i] = CHSV((hue + 128) % 256, 255, 255);
+        }
+        else if (i == chaseInd)
+        {
+          leds[i] = CHSV((hue + 160) % 256, 255, 255);
+        }
+        else
+        {
+          leds[i] = CHSV(hue, 255, 255);
+        }
+      }
+      FastLED.show();
+      chaseInd = (chaseInd + 1) % 9;
+      hue = (hue + 1) % 256;
       vTaskDelay(100 / portTICK_PERIOD_MS);
       break;
 
     case LED_MODE_FADE:
-      if (fadeScale == 0)
+      if (fadeBrightness == 0)
       {
         fadeAdd = 1;
       }
-      else if (fadeScale == AppPreferences.getLedBrightness())
+      else if (fadeBrightness == AppPreferences.getLedBrightness())
       {
         fadeAdd = -1;
       }
-
-      fadeScale += fadeAdd;
-      FastLED.setBrightness(fadeScale);
+      fadeBrightness += fadeAdd;
+      FastLED.setBrightness(fadeBrightness);
       FastLED.showColor(color);
-      vTaskDelay(100 / portTICK_PERIOD_MS);
+      vTaskDelay(30 / portTICK_PERIOD_MS);
       break;
 
     default:
