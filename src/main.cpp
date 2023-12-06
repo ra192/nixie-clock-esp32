@@ -398,7 +398,6 @@ void toggleDotsTask(void *params)
 void updateLedsTask(void *args)
 {
   uint8_t hue;
-  uint8_t chaseInd;
   uint8_t fadeBrightness;
   int fadeAdd;
   for (;;)
@@ -422,25 +421,9 @@ void updateLedsTask(void *args)
       FastLED.setBrightness(AppPreferences.getLedBrightness());
       for (int i = 0; i < LED_COUNT; i++)
       {
-        if (i == chaseInd - 2)
-        {
-          leds[i] = CHSV((hue + 96) % 256, 255, 255);
-        }
-        else if (i == chaseInd - 1)
-        {
-          leds[i] = CHSV((hue + 128) % 256, 255, 255);
-        }
-        else if (i == chaseInd)
-        {
-          leds[i] = CHSV((hue + 160) % 256, 255, 255);
-        }
-        else
-        {
-          leds[i] = CHSV(hue, 255, 255);
-        }
+        leds[i] = CHSV(hue + i * 12, 255, 255);
       }
       FastLED.show();
-      chaseInd = (chaseInd + 1) % 9;
       hue = (hue + 1) % 256;
       vTaskDelay(100 / portTICK_PERIOD_MS);
       break;
