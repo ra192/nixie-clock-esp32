@@ -22,10 +22,10 @@ void AppPreferencesClass::begin(void)
     transitionEffect = preferences.getUInt(TRANSITION_EFFECT, TRANSITION_EFFECT_DEFAULT);
     h24Format = preferences.getUInt(H24_FORMAT, 1);
     celsiusTemp = preferences.getUInt(CELSIUS_TEMP, 1);
-    dotMode = preferences.getUInt(DOT_MODE);
+    dotMode = preferences.getUInt(DOT_MODE, DOT_MODE_DEFAULT);
     ledBrightness = preferences.getUInt(LED_BRIGHTNESS, LED_BRIGHTNESS_DEFAULT);
     ledColor = preferences.getUInt(LED_COLOR, LED_COLOR_DEFAULT);
-    ledMode = preferences.getUInt(LED_MODE);
+    ledMode = preferences.getUInt(LED_MODE, LED_MODE_DEFAULT);
 }
 
 String AppPreferencesClass::getSSID(void)

@@ -26,12 +26,14 @@
 #define CELSIUS_TEMP "celsius_temp"
 
 #define DOT_MODE "dot_mode"
+#define DOT_MODE_DEFAULT 2
 
 #define LED_BRIGHTNESS "led_bright"
-#define LED_BRIGHTNESS_DEFAULT 255
+#define LED_BRIGHTNESS_DEFAULT 64
 #define LED_COLOR "led_color"
 #define LED_COLOR_DEFAULT 0xff0000
 #define LED_MODE "led_mode"
+#define LED_MODE_DEFAULT 1
 
 class AppPreferencesClass
 {

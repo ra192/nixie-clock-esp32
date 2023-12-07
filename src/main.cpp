@@ -85,16 +85,17 @@ void setupWifi()
     else
     {
       Serial.println("Connected to wifi network");
-      if (!MDNS.begin(AppPreferences.getHostname()))
-      {
-        Serial.println("Error starting mDNS");
-        return;
-      }
     }
   }
   else
   {
     startAP();
+  }
+
+  if (!MDNS.begin(AppPreferences.getHostname()))
+  {
+    Serial.println("Error starting mDNS");
+    return;
   }
 }
 
@@ -445,7 +446,7 @@ void updateLedsTask(void *args)
 
     default:
       FastLED.showColor(0);
-      vTaskDelay(1000 / portTICK_PERIOD_MS);
+      vTaskDelay(2000 / (AppPreferences.getLedBrightness() * portTICK_PERIOD_MS));
       break;
     }
   }
