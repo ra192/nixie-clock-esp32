@@ -18,15 +18,16 @@ void AppPreferencesClass::begin(void)
     nixieBrightness = preferences.getUInt(NIXIE_BRIGHTNESS, NIXIE_BRIGHTNESS_DEFAULT);
     syncTime = preferences.getUInt(SYNC_TIME);
     timeZone = preferences.getString(TIME_ZONE);
+    displayModeFreq = preferences.getUInt(DISPLAY_MODE_FREQ);
     displayMode = preferences.getUInt(DISPLAY_MODE);
     digitEffect = preferences.getUInt(DIGIT_EFFECT);
-    transitionEffect = preferences.getUInt(TRANSITION_EFFECT, TRANSITION_EFFECT_DEFAULT);
+    transitionEffect = preferences.getUInt(TRANSITION_EFFECT, FLIP_SEQ_TRANSITION_EFFECT);
     h24Format = preferences.getUInt(H24_FORMAT, 1);
     celsiusTemp = preferences.getUInt(CELSIUS_TEMP, 1);
-    dotMode = preferences.getUInt(DOT_MODE, DOT_MODE_DEFAULT);
+    dotMode = preferences.getUInt(DOT_MODE, DOT_BLINK_MODE);
     ledBrightness = preferences.getUInt(LED_BRIGHTNESS, LED_BRIGHTNESS_DEFAULT);
     ledColor = preferences.getUInt(LED_COLOR, LED_COLOR_DEFAULT);
-    ledMode = preferences.getUInt(LED_MODE, LED_MODE_DEFAULT);
+    ledMode = preferences.getUInt(LED_MODE, LED_MODE_STATIC);
 }
 
 String AppPreferencesClass::getSSID(void)
@@ -93,6 +94,17 @@ void AppPreferencesClass::setTimeZone(String val)
 {
     timeZone = val;
     preferences.putString(TIME_ZONE, val);
+}
+
+uint8_t AppPreferencesClass::getDisplayModeFreq(void)
+{
+    return displayModeFreq;
+}
+
+void AppPreferencesClass::setDisplayModeFreq(uint8_t val)
+{
+    displayModeFreq = val;
+    preferences.putUInt(DISPLAY_MODE_FREQ, val);
 }
 
 uint8_t AppPreferencesClass::getDisplayMode(void)

@@ -19,39 +19,6 @@
 #include <appPreferences.h>
 #include <nixie.h>
 
-#define TIME_DISP_MODE 0
-#define TIME_DATE_DISP_MODE 1
-#define TIME_TEMP_DISP_MODE 2
-#define TIME_DATE_TEMP_DISP_MODE 3
-
-#define NO_DIGIT_EFFECT 0
-#define FLIP_DIGIT_EFFECT 1
-#define FLIP_SEQ_DIGIT_EFFECT 2
-#define FADE_DIGIT_EFFECT 3
-
-#define NO_TRANSITION_EFFECT 0
-#define SHIFT_LEFT_TRANSITION_EFFECT 1
-#define SHIFT_RIGHT_TRANSITION_EFFECT 2
-#define FLIP_TRANSITION_EFFECT 3
-#define FLIP_SEQ_TRANSITION_EFFECT 4
-#define FADE_TRANSITION_EFFECT 5
-
-#define DOT_1_PIN 2
-#define DOT_2_PIN 23
-
-#define DOT_OFF_MODE 0
-#define DOT_ON_MODE 1
-#define DOT_BLINK_MODE 1
-
-#define LED_COUNT 6
-#define LED_PIN 27
-
-#define LED_MODE_OFF 0
-#define LED_MODE_STATIC 1
-#define LED_MODE_RAINBOW 2
-#define LED_MODE_RAINBOW_CHASE 3
-#define LED_MODE_FADE 4
-
 int wifiNetworksCount;
 
 AsyncWebServer server(80);
@@ -145,6 +112,7 @@ void setupWebserver()
       StaticJsonDocument<256> doc;
       
       doc[NIXIE_BRIGHTNESS]=AppPreferences.getNixieBrightness();
+      doc[DISPLAY_MODE_FREQ]=AppPreferences.getDisplayModeFreq();
       doc[DISPLAY_MODE]=AppPreferences.getDisplayMode();
       doc[DIGIT_EFFECT]=AppPreferences.getDigitEffect();
       doc[TRANSITION_EFFECT]=AppPreferences.getTransitionEffect();
@@ -228,14 +196,17 @@ void setupWebserver()
               Nixie.setBrightness(nixieBrightness);
               AppPreferences.setNixieBrightness(nixieBrightness);
 
+              uint8_t displayModeFreq = request->getParam(DISPLAY_MODE_FREQ,true)->value().toInt();
+              AppPreferences.setDisplayModeFreq(displayModeFreq);
+
+              uint8_t displayMode = request->getParam(DISPLAY_MODE,true)->value().toInt();
+              AppPreferences.setDisplayMode(displayMode);
+
               uint8_t digitEffect = request->getParam(DIGIT_EFFECT, true)->value().toInt();
               AppPreferences.setDigitEffect(digitEffect);
 
               uint8_t transitionEffect = request->getParam(TRANSITION_EFFECT, true)->value().toInt();
               AppPreferences.setTransitionEffect(transitionEffect);
-
-              uint8_t displayMode = request->getParam(DISPLAY_MODE,true)->value().toInt();
-              AppPreferences.setDisplayMode(displayMode);
 
               uint8_t celsiusTemp = request->getParam(CELSIUS_TEMP,true)->value().toInt();
               AppPreferences.setCelsiusTemp(celsiusTemp);
@@ -279,50 +250,6 @@ void updateTimeTask(void *params)
   }
 }
 
-void changeDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
-{
-  switch (AppPreferences.getDigitEffect())
-  {
-  case FLIP_DIGIT_EFFECT:
-    Nixie.flip(dig1, dig2, dig3, dig4, dig5, dig6, false);
-    break;
-  case FLIP_SEQ_DIGIT_EFFECT:
-    Nixie.flipSeq(dig1, dig2, dig3, dig4, dig5, dig6, false);
-    break;
-  case FADE_DIGIT_EFFECT:
-    Nixie.fade(dig1, dig2, dig3, dig4, dig5, dig6, false);
-    break;
-  default:
-    Nixie.setDigits(dig1, dig2, dig3, dig4, dig5, dig6);
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-  }
-}
-
-void doTransition(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
-{
-  switch (AppPreferences.getTransitionEffect())
-  {
-  case SHIFT_LEFT_TRANSITION_EFFECT:
-    Nixie.shiftLeft(dig1, dig2, dig3, dig4, dig5, dig6);
-    break;
-  case SHIFT_RIGHT_TRANSITION_EFFECT:
-    Nixie.shiftRight(dig1, dig2, dig3, dig4, dig5, dig6);
-    break;
-  case FLIP_TRANSITION_EFFECT:
-    Nixie.flip(dig1, dig2, dig3, dig4, dig5, dig6);
-    break;
-  case FLIP_SEQ_TRANSITION_EFFECT:
-    Nixie.flipSeq(dig1, dig2, dig3, dig4, dig5, dig6);
-    break;
-  case FADE_TRANSITION_EFFECT:
-    Nixie.fade(dig1, dig2, dig3, dig4, dig5, dig6);
-    break;
-  default:
-    Nixie.setDigits(dig1, dig2, dig3, dig4, dig5, dig6);
-    break;
-  }
-}
-
 uint8_t getHour()
 {
   if (now.Hour() == 0 && !AppPreferences.getH24Format())
@@ -351,13 +278,75 @@ uint16_t getTempCenti()
   }
 }
 
+void changeDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
+{
+  switch (AppPreferences.getDigitEffect())
+  {
+  case FLIP_DIGIT_EFFECT:
+    Nixie.flip(dig1, dig2, dig3, dig4, dig5, dig6, false);
+    break;
+  case FLIP_SEQ_DIGIT_EFFECT:
+    Nixie.flipSeq(dig1, dig2, dig3, dig4, dig5, dig6, false);
+    break;
+  case FADE_DIGIT_EFFECT:
+    Nixie.fade(dig1, dig2, dig3, dig4, dig5, dig6, false);
+    break;
+  default:
+    Nixie.setDigits(dig1, dig2, dig3, dig4, dig5, dig6);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+  }
+}
+
+bool checkTransition()
+{
+  switch (AppPreferences.getDisplayModeFreq())
+  {
+  case EVERY_30_SEC_DISP_MODE:
+    return now.Second() % 30 == 0;
+    break;
+
+  case EVERY_MIN_DISP_MODE:
+    return now.Second() == 30;
+    break;
+
+  default:
+    return now.Minute() % 2 == 0 && now.Second() == 30;
+    break;
+  }
+}
+
+void doTransition(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
+{
+  switch (AppPreferences.getTransitionEffect())
+  {
+  case SHIFT_LEFT_TRANSITION_EFFECT:
+    Nixie.shiftLeft(dig1, dig2, dig3, dig4, dig5, dig6);
+    break;
+  case SHIFT_RIGHT_TRANSITION_EFFECT:
+    Nixie.shiftRight(dig1, dig2, dig3, dig4, dig5, dig6);
+    break;
+  case FLIP_TRANSITION_EFFECT:
+    Nixie.flip(dig1, dig2, dig3, dig4, dig5, dig6);
+    break;
+  case FLIP_SEQ_TRANSITION_EFFECT:
+    Nixie.flipSeq(dig1, dig2, dig3, dig4, dig5, dig6);
+    break;
+  case FADE_TRANSITION_EFFECT:
+    Nixie.fade(dig1, dig2, dig3, dig4, dig5, dig6);
+    break;
+  default:
+    Nixie.setDigits(dig1, dig2, dig3, dig4, dig5, dig6);
+    break;
+  }
+}
+
 void updateNixieTask(void *params)
 {
   uint8_t hour;
   uint16_t tempCenti;
   for (;;)
   {
-    if (now.Second() % 30 == 0)
+    if (checkTransition())
     {
       switch (AppPreferences.getDisplayMode())
       {

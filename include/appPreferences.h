@@ -17,25 +17,61 @@
 #define SYNC_TIME "sync_time"
 #define TIME_ZONE "time_zone"
 
+#define DISPLAY_MODE_FREQ "disp_mode_freq"
+
+#define EVERY_30_SEC_DISP_MODE 0
+#define EVERY_MIN_DISP_MODE 1  
+#define EVERY_2_MIN_DISP_MODE 2 
+
 #define DISPLAY_MODE "display_mode"
+
+#define TIME_DISP_MODE 0
+#define TIME_DATE_DISP_MODE 1
+#define TIME_TEMP_DISP_MODE 2
+#define TIME_DATE_TEMP_DISP_MODE 3
 
 #define DIGIT_EFFECT "digit_effect"
 
+#define NO_DIGIT_EFFECT 0
+#define FLIP_DIGIT_EFFECT 1
+#define FLIP_SEQ_DIGIT_EFFECT 2
+#define FADE_DIGIT_EFFECT 3
+
 #define TRANSITION_EFFECT "trans_effect"
-#define TRANSITION_EFFECT_DEFAULT 4
+
+#define NO_TRANSITION_EFFECT 0
+#define SHIFT_LEFT_TRANSITION_EFFECT 1
+#define SHIFT_RIGHT_TRANSITION_EFFECT 2
+#define FLIP_TRANSITION_EFFECT 3
+#define FLIP_SEQ_TRANSITION_EFFECT 4
+#define FADE_TRANSITION_EFFECT 5
 
 #define H24_FORMAT "24h_format"
 #define CELSIUS_TEMP "celsius_temp"
 
+#define DOT_1_PIN 2
+#define DOT_2_PIN 23
+
 #define DOT_MODE "dot_mode"
-#define DOT_MODE_DEFAULT 2
+
+#define DOT_OFF_MODE 0
+#define DOT_ON_MODE 1
+#define DOT_BLINK_MODE 2
 
 #define LED_BRIGHTNESS "led_bright"
 #define LED_BRIGHTNESS_DEFAULT 64
 #define LED_COLOR "led_color"
 #define LED_COLOR_DEFAULT 0xff0000
 #define LED_MODE "led_mode"
-#define LED_MODE_DEFAULT 1
+
+#define LED_COUNT 6
+#define LED_PIN 27
+
+#define LED_MODE_OFF 0
+#define LED_MODE_STATIC 1
+#define LED_MODE_RAINBOW 2
+#define LED_MODE_RAINBOW_CHASE 3
+#define LED_MODE_FADE 4
 
 class AppPreferencesClass
 {
@@ -50,6 +86,8 @@ private:
 
     uint8_t syncTime;
     String timeZone;
+
+    uint8_t displayModeFreq;
 
     uint8_t displayMode;
 
@@ -92,6 +130,10 @@ public:
     String getTimeZone(void);
 
     void setTimeZone(String val);
+
+    uint8_t getDisplayModeFreq(void);
+
+    void setDisplayModeFreq(uint8_t val);
 
     uint8_t getDisplayMode(void);
 

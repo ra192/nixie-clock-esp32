@@ -95,6 +95,16 @@
                             </div>
                         </div>
                         <div class="row mb-3">
+                            <label for="disp_mode_freq" class="col-sm-2 col-form-label">Show every</label>
+                            <div class="col-sm-4">
+                                <select class="form-select" id="disp_mode_freq" name="disp_mode_freq">
+                                    <option value="0">30 sec</option>
+                                    <option value="1">Minute</option>
+                                    <option value="2">Two minute</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
                             <label for="trans_effect" class="col-sm-2 col-form-label">Nixie effect</label>
                             <div class="col-sm-4">
                                 <select class="form-select" id="trans_effect" name="trans_effect">
@@ -232,6 +242,7 @@
         fetch('/get-settings').then(response => response.json()).then(data => {
             document.getElementById('nixie_bright').value = data['nixie_bright'];
             document.getElementById('display_mode').value = data['display_mode'];
+            document.getElementById('disp_mode_freq').value = data['disp_mode_freq'];
             document.getElementById('trans_effect').value = data['trans_effect'];
             document.getElementById('digit_effect').value = data['digit_effect'];
             document.getElementById('celsius_temp').value = data['celsius_temp'];
