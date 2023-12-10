@@ -19,6 +19,7 @@ void AppPreferencesClass::begin(void)
     syncTime = preferences.getUInt(SYNC_TIME);
     timeZone = preferences.getString(TIME_ZONE);
     displayMode = preferences.getUInt(DISPLAY_MODE);
+    digitEffect = preferences.getUInt(DIGIT_EFFECT);
     transitionEffect = preferences.getUInt(TRANSITION_EFFECT, TRANSITION_EFFECT_DEFAULT);
     h24Format = preferences.getUInt(H24_FORMAT, 1);
     celsiusTemp = preferences.getUInt(CELSIUS_TEMP, 1);
@@ -103,6 +104,17 @@ void AppPreferencesClass::setDisplayMode(uint8_t val)
 {
     displayMode = val;
     preferences.putUInt(DISPLAY_MODE, val);
+}
+
+uint8_t AppPreferencesClass::getDigitEffect(void)
+{
+    return digitEffect;
+}
+
+void AppPreferencesClass::setDigitEffect(uint8_t val)
+{
+    digitEffect = val;
+    preferences.putUInt(DIGIT_EFFECT, val);
 }
 
 uint8_t AppPreferencesClass::getTransitionEffect(void)

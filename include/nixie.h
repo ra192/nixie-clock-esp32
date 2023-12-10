@@ -33,9 +33,10 @@
 
 #define EMPTY_DIGIT 10
 
-#define FLIP_ALL_DELAY_MS 100
+#define FLIP_ALL_DELAY_MS 50
 #define FLIP_SEQ_DELAY_MS 10
 #define SHIFT_DELAY_MS 100
+#define FADE_DELAY 10
 
 const uint8_t LPins[] = {L1_PIN, L2_PIN, L3_PIN, L4_PIN, L5_PIN, L6_PIN};
 const uint8_t PwmLChannels[] = {PWM_L1_CHANNEL, PWM_L2_CHANNEL, PWM_L3_CHANNEL, PWM_L4_CHANNEL, PWM_L5_CHANNEL, PWM_L6_CHANNEL};
@@ -45,9 +46,9 @@ class NixieClass
 private:
     uint8_t digitValues[DIGITS_SIZE];
 
-    uint8_t brightness;
+    uint8_t brightnessValues[DIGITS_SIZE];
 
-    void createShiftArray(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6, uint8_t *resArr);
+    void copyShiftArray(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6, uint8_t *resArr);
 
     void onDigit(uint8_t num);
 
@@ -62,9 +63,11 @@ public:
 
     void begin();
 
-    void flip_all(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6);
+    void fade(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6, bool allDigits = true);
 
-    void flip_seq(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6);
+    void flip(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6, bool allDigits = true);
+
+    void flipSeq(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6, bool allDigits = true);
 
     void setBrightness(uint8_t brightness);
 

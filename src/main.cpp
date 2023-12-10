@@ -21,13 +21,20 @@
 
 #define TIME_DISP_MODE 0
 #define TIME_DATE_DISP_MODE 1
-#define TIME_DATE_TEMP_DISP_MODE 2
+#define TIME_TEMP_DISP_MODE 2
+#define TIME_DATE_TEMP_DISP_MODE 3
+
+#define NO_DIGIT_EFFECT 0
+#define FLIP_DIGIT_EFFECT 1
+#define FLIP_SEQ_DIGIT_EFFECT 2
+#define FADE_DIGIT_EFFECT 3
 
 #define NO_TRANSITION_EFFECT 0
 #define SHIFT_LEFT_TRANSITION_EFFECT 1
 #define SHIFT_RIGHT_TRANSITION_EFFECT 2
-#define FLIP_ALL_TRANSITION_EFFECT 3
+#define FLIP_TRANSITION_EFFECT 3
 #define FLIP_SEQ_TRANSITION_EFFECT 4
+#define FADE_TRANSITION_EFFECT 5
 
 #define DOT_1_PIN 2
 #define DOT_2_PIN 23
@@ -139,6 +146,7 @@ void setupWebserver()
       
       doc[NIXIE_BRIGHTNESS]=AppPreferences.getNixieBrightness();
       doc[DISPLAY_MODE]=AppPreferences.getDisplayMode();
+      doc[DIGIT_EFFECT]=AppPreferences.getDigitEffect();
       doc[TRANSITION_EFFECT]=AppPreferences.getTransitionEffect();
       doc[CELSIUS_TEMP]=AppPreferences.getCelsiusTemp();
       doc[DOT_MODE]=AppPreferences.getDotMode();
@@ -220,6 +228,9 @@ void setupWebserver()
               Nixie.setBrightness(nixieBrightness);
               AppPreferences.setNixieBrightness(nixieBrightness);
 
+              uint8_t digitEffect = request->getParam(DIGIT_EFFECT, true)->value().toInt();
+              AppPreferences.setDigitEffect(digitEffect);
+
               uint8_t transitionEffect = request->getParam(TRANSITION_EFFECT, true)->value().toInt();
               AppPreferences.setTransitionEffect(transitionEffect);
 
@@ -268,6 +279,25 @@ void updateTimeTask(void *params)
   }
 }
 
+void changeDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
+{
+  switch (AppPreferences.getDigitEffect())
+  {
+  case FLIP_DIGIT_EFFECT:
+    Nixie.flip(dig1, dig2, dig3, dig4, dig5, dig6, false);
+    break;
+  case FLIP_SEQ_DIGIT_EFFECT:
+    Nixie.flipSeq(dig1, dig2, dig3, dig4, dig5, dig6, false);
+    break;
+  case FADE_DIGIT_EFFECT:
+    Nixie.fade(dig1, dig2, dig3, dig4, dig5, dig6, false);
+    break;
+  default:
+    Nixie.setDigits(dig1, dig2, dig3, dig4, dig5, dig6);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+  }
+}
+
 void doTransition(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
 {
   switch (AppPreferences.getTransitionEffect())
@@ -278,11 +308,14 @@ void doTransition(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_
   case SHIFT_RIGHT_TRANSITION_EFFECT:
     Nixie.shiftRight(dig1, dig2, dig3, dig4, dig5, dig6);
     break;
-  case FLIP_ALL_TRANSITION_EFFECT:
-    Nixie.flip_all(dig1, dig2, dig3, dig4, dig5, dig6);
+  case FLIP_TRANSITION_EFFECT:
+    Nixie.flip(dig1, dig2, dig3, dig4, dig5, dig6);
     break;
   case FLIP_SEQ_TRANSITION_EFFECT:
-    Nixie.flip_seq(dig1, dig2, dig3, dig4, dig5, dig6);
+    Nixie.flipSeq(dig1, dig2, dig3, dig4, dig5, dig6);
+    break;
+  case FADE_TRANSITION_EFFECT:
+    Nixie.fade(dig1, dig2, dig3, dig4, dig5, dig6);
     break;
   default:
     Nixie.setDigits(dig1, dig2, dig3, dig4, dig5, dig6);
@@ -306,9 +339,22 @@ uint8_t getHour()
   }
 }
 
+uint16_t getTempCenti()
+{
+  if (AppPreferences.getCelsiusTemp())
+  {
+    return temperature.AsCentiDegC();
+  }
+  else
+  {
+    return temperature.AsFloatDegF() * 100;
+  }
+}
+
 void updateNixieTask(void *params)
 {
   uint8_t hour;
+  uint16_t tempCenti;
   for (;;)
   {
     if (now.Second() % 30 == 0)
@@ -324,22 +370,25 @@ void updateNixieTask(void *params)
 
         break;
 
+      case TIME_TEMP_DISP_MODE:
+        doTransition(now.Day() / 10, now.Day() % 10, now.Month() / 10, now.Month() % 10, now.Year() % 100 / 10, now.Year() % 10);
+        vTaskDelay(2000);
+
+        tempCenti = getTempCenti();
+        doTransition(EMPTY_DIGIT, EMPTY_DIGIT, tempCenti / 1000, tempCenti % 1000 / 100, tempCenti % 100 / 10, EMPTY_DIGIT);
+        vTaskDelay(2000);
+
+        hour = getHour();
+        doTransition(hour / 10, hour % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+
+        break;
+
       case TIME_DATE_TEMP_DISP_MODE:
         doTransition(now.Day() / 10, now.Day() % 10, now.Month() / 10, now.Month() % 10, now.Year() % 100 / 10, now.Year() % 10);
         vTaskDelay(2000);
 
-        if (AppPreferences.getCelsiusTemp())
-        {
-          doTransition(EMPTY_DIGIT, EMPTY_DIGIT, temperature.AsCentiDegC() / 1000, temperature.AsCentiDegC() % 1000 / 100, temperature.AsCentiDegC() % 100 / 10, EMPTY_DIGIT);
-        }
-        else
-        {
-          float temperatureInF = temperature.AsFloatDegF();
-          int temperatureInF_Int = (int)temperatureInF;
-          int temperatureInF_Centi = (temperatureInF - temperatureInF_Int) * 100;
-
-          doTransition(EMPTY_DIGIT, EMPTY_DIGIT, temperatureInF_Int / 10, temperatureInF_Int % 10, temperatureInF_Centi / 10, EMPTY_DIGIT);
-        }
+        tempCenti = getTempCenti();
+        doTransition(EMPTY_DIGIT, EMPTY_DIGIT, tempCenti / 1000, tempCenti % 1000 / 100, tempCenti % 100 / 10, EMPTY_DIGIT);
         vTaskDelay(2000);
 
         hour = getHour();
@@ -348,14 +397,14 @@ void updateNixieTask(void *params)
         break;
 
       default:
+        doTransition(hour / 10, hour % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
         break;
       }
     }
     else
     {
       hour = getHour();
-      Nixie.setDigits(hour / 10, hour % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
-      vTaskDelay(1000 / portTICK_PERIOD_MS);
+      changeDigits(hour / 10, hour % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
     }
   }
 }

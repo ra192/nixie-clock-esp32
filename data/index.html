@@ -79,8 +79,8 @@
                         <div class="row mb-3">
                             <label for="nixie_bright" class="col-sm-2 col-form-label">Nixie brightness</label>
                             <div class="col-sm-4">
-                                <input type="number" class="form-control" id="nixie_bright" name="nixie_bright"
-                                    min="32" max="255">
+                                <input type="number" class="form-control" id="nixie_bright" name="nixie_bright" min="32"
+                                    max="255">
                             </div>
                         </div>
                         <div class="row mb-3">
@@ -89,7 +89,8 @@
                                 <select class="form-select" id="display_mode" name="display_mode">
                                     <option value="0">Time</option>
                                     <option value="1">Time and date</option>
-                                    <option value="2">Time, date and temperature</option>
+                                    <option value="2">Time and date</option>
+                                    <option value="3">Time, date and temperature</option>
                                 </select>
                             </div>
                         </div>
@@ -102,6 +103,18 @@
                                     <option value="2">Shift right</option>
                                     <option value="3">Flip all</option>
                                     <option value="4">Flip seq</option>
+                                    <option value="5">Fade</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="digit_effect" class="col-sm-2 col-form-label">Digit effect</label>
+                            <div class="col-sm-4">
+                                <select class="form-select" id="digit_effect" name="digit_effect">
+                                    <option value="0">None</option>
+                                    <option value="1">Flip all</option>
+                                    <option value="2">Flip seq</option>
+                                    <option value="3">Fade</option>
                                 </select>
                             </div>
                         </div>
@@ -143,14 +156,7 @@
                         <div class="row mb-3">
                             <label for="led_bright" class="col-sm-2 col-form-label">Led brightness</label>
                             <div class="col-sm-4">
-                                <input type="number" class="form-control" id="led_bright" name="led_bright"
-                                    max="255">
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <label for="led_color" class="col-sm-2 col-form-label">Led color</label>
-                            <div class="col-sm-4">
-                                <input type="text" class="form-control" id="led_color" name="led_color" data-coloris>
+                                <input type="number" class="form-control" id="led_bright" name="led_bright" max="255">
                             </div>
                         </div>
                         <div class="row mb-3">
@@ -163,6 +169,12 @@
                                     <option value="3">Rainbow 2</option>
                                     <option value="4">Fade</option>
                                 </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="led_color" class="col-sm-2 col-form-label">Led color</label>
+                            <div class="col-sm-4">
+                                <input type="text" class="form-control" id="led_color" name="led_color" data-coloris>
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Submit</button>
@@ -221,6 +233,7 @@
             document.getElementById('nixie_bright').value = data['nixie_bright'];
             document.getElementById('display_mode').value = data['display_mode'];
             document.getElementById('trans_effect').value = data['trans_effect'];
+            document.getElementById('digit_effect').value = data['digit_effect'];
             document.getElementById('celsius_temp').value = data['celsius_temp'];
             document.getElementById('dot_mode').value = data['dot_mode'];
         });
@@ -229,7 +242,11 @@
             document.getElementById('led_bright').value = data['led_bright'];
             document.getElementById('led_color').value = data['led_color'];
             document.getElementById('led_mode').value = data['led_mode'];
-        });    
+
+            Coloris({
+                alpha: false
+            });
+        });
 
         fetch('/get-network-settings').then(response => response.json()).then(data => {
             var ssidElem = document.getElementById('ssid');
@@ -246,10 +263,6 @@
 
             ssidElem.value = data['ssid']
             document.getElementById('hostname').value = data['hostname'];
-        });
-
-        Coloris({
-            alpha: false
         });
     </script>
 </body>

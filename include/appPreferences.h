@@ -19,8 +19,10 @@
 
 #define DISPLAY_MODE "display_mode"
 
+#define DIGIT_EFFECT "digit_effect"
+
 #define TRANSITION_EFFECT "trans_effect"
-#define TRANSITION_EFFECT_DEFAULT 1
+#define TRANSITION_EFFECT_DEFAULT 4
 
 #define H24_FORMAT "24h_format"
 #define CELSIUS_TEMP "celsius_temp"
@@ -50,6 +52,8 @@ private:
     String timeZone;
 
     uint8_t displayMode;
+
+    uint8_t digitEffect;
 
     uint8_t transitionEffect;
 
@@ -92,6 +96,10 @@ public:
     uint8_t getDisplayMode(void);
 
     void setDisplayMode(uint8_t val);
+
+    uint8_t getDigitEffect(void);
+
+    void setDigitEffect(uint8_t val);
 
     uint8_t getTransitionEffect(void);
 
