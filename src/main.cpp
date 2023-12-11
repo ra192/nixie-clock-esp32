@@ -244,7 +244,7 @@ void updateTimeTask(void *params)
   for (;;)
   {
     now = Rtc.GetDateTime();
-    if (AppPreferences.getDisplayMode() == TIME_DATE_TEMP_DISP_MODE)
+    if (AppPreferences.getDisplayMode() == TIME_DATE_TEMP_DISP_MODE || AppPreferences.getDisplayMode() == TIME_TEMP_DISP_MODE)
       temperature = Rtc.GetTemperature();
     vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
