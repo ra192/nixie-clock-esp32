@@ -52,6 +52,12 @@
 #define DOT_1_PIN 2
 #define DOT_2_PIN 23
 
+#define PWM_DOT_CHANNEL 7
+#define PWM_DOT_FREQ 10000
+#define PWM_DOT_RES 8
+
+#define DOT_BRIGHTNESS "dot_brightness"
+#define DOT_BRIGHTNESS_DEFAULT 128
 #define DOT_MODE "dot_mode"
 
 #define DOT_OFF_MODE 0
@@ -98,6 +104,7 @@ private:
     uint8_t h24Format;
     uint8_t celsiusTemp;
 
+    uint8_t dotBrightness;
     uint8_t dotMode;
 
     uint8_t ledBrightness;
@@ -154,6 +161,10 @@ public:
     uint8_t getCelsiusTemp(void);
 
     void setCelsiusTemp(uint8_t val);
+
+    uint8_t getDotBrightness(void);
+
+    void setDotBrightness(uint8_t val);
 
     uint8_t getDotMode(void);
 

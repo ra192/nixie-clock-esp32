@@ -117,6 +117,7 @@ void setupWebserver()
       doc[DIGIT_EFFECT]=AppPreferences.getDigitEffect();
       doc[TRANSITION_EFFECT]=AppPreferences.getTransitionEffect();
       doc[CELSIUS_TEMP]=AppPreferences.getCelsiusTemp();
+      doc[DOT_BRIGHTNESS]=AppPreferences.getDotBrightness();
       doc[DOT_MODE]=AppPreferences.getDotMode();
 
       String jsonStr;
@@ -210,6 +211,9 @@ void setupWebserver()
 
               uint8_t celsiusTemp = request->getParam(CELSIUS_TEMP,true)->value().toInt();
               AppPreferences.setCelsiusTemp(celsiusTemp);
+
+              uint8_t dotBrightness = request->getParam(DOT_BRIGHTNESS, true)->value().toInt();
+              AppPreferences.setDotBrightness(dotBrightness);
 
               uint8_t dotMode = request->getParam(DOT_MODE, true)->value().toInt();
               AppPreferences.setDotMode(dotMode);
@@ -403,26 +407,22 @@ void toggleDotsTask(void *params)
     switch (AppPreferences.getDotMode())
     {
     case DOT_OFF_MODE:
-      digitalWrite(DOT_1_PIN, LOW);
-      digitalWrite(DOT_2_PIN, LOW);
+      ledcWrite(PWM_DOT_CHANNEL, 0);
       break;
 
     case DOT_ON_MODE:
-      digitalWrite(DOT_1_PIN, HIGH);
-      digitalWrite(DOT_2_PIN, HIGH);
+      ledcWrite(PWM_DOT_CHANNEL, AppPreferences.getDotBrightness());
       break;
 
     default:
       if (isOn)
       {
-        digitalWrite(DOT_1_PIN, LOW);
-        digitalWrite(DOT_2_PIN, LOW);
+        ledcWrite(PWM_DOT_CHANNEL, 0);
         isOn = false;
       }
       else
       {
-        digitalWrite(DOT_1_PIN, HIGH);
-        digitalWrite(DOT_2_PIN, HIGH);
+        ledcWrite(PWM_DOT_CHANNEL, AppPreferences.getDotBrightness());
         isOn = true;
       }
       break;
@@ -529,8 +529,9 @@ void setup()
 
   xTaskCreate(updateLedsTask, "update leds", 1024, NULL, 4, NULL);
 
-  pinMode(DOT_1_PIN, OUTPUT);
-  pinMode(DOT_2_PIN, OUTPUT);
+  ledcSetup(PWM_DOT_CHANNEL, PWM_DOT_FREQ, PWM_DOT_RES);
+  ledcAttachPin(DOT_1_PIN, PWM_DOT_CHANNEL);
+  ledcAttachPin(DOT_2_PIN, PWM_DOT_CHANNEL);
 
   xTaskCreate(toggleDotsTask, "toggle dots", 1024, NULL, 1, NULL);
 
