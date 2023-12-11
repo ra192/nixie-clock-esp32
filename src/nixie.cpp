@@ -123,8 +123,8 @@ void NixieClass::fade(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, ui
             {
                 brightnessValues[j] -= brightnessStep;
             }
-            vTaskDelay(FADE_DELAY);
         }
+        vTaskDelay(FADE_DELAY);
     }
 
     memcpy(digitValues, newDigs, DIGITS_SIZE);
@@ -163,6 +163,7 @@ void NixieClass::flip(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, ui
         vTaskDelay(FLIP_ALL_DELAY_MS);
     }
     setDigits(dig1, dig2, dig3, dig4, dig5, dig6);
+    vTaskDelay(500);
 }
 
 void NixieClass::flipSeq(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6, bool allDigits)
@@ -171,6 +172,7 @@ void NixieClass::flipSeq(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4,
     memcpy(oldDigis, digitValues, DIGITS_SIZE);
 
     uint8_t newDigs[DIGITS_SIZE] = {digitCodes[dig1], digitCodes[dig2], digitCodes[dig3], digitCodes[dig4], digitCodes[dig5], digitCodes[dig6]};
+    uint8_t sumDelay;
 
     for (int i = 0; i < DIGITS_SIZE; i++)
     {
@@ -179,11 +181,13 @@ void NixieClass::flipSeq(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4,
             for (int j = 0; j < 10; j++)
             {
                 digitValues[i] = digitCodes[j];
+                sumDelay+=FLIP_SEQ_DELAY_MS;
                 vTaskDelay(FLIP_SEQ_DELAY_MS);
             }
             digitValues[i] = newDigs[i];
         }
     }
+    vTaskDelay(1000-sumDelay);
 }
 
 void NixieClass::setBrightness(uint8_t brightness)

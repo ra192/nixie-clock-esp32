@@ -360,9 +360,6 @@ void updateNixieTask(void *params)
         break;
 
       case TIME_TEMP_DISP_MODE:
-        doTransition(now.Day() / 10, now.Day() % 10, now.Month() / 10, now.Month() % 10, now.Year() % 100 / 10, now.Year() % 10);
-        vTaskDelay(2000);
-
         tempCenti = getTempCenti();
         doTransition(EMPTY_DIGIT, EMPTY_DIGIT, tempCenti / 1000, tempCenti % 1000 / 100, tempCenti % 100 / 10, EMPTY_DIGIT);
         vTaskDelay(2000);
