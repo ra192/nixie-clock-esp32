@@ -24,7 +24,7 @@
                         <div class="row mb-3">
                             <label for="time" class="col-sm-2 col-form-label">Time</label>
                             <div class="col-sm-4">
-                                <input type="time" class="form-control" id="time" name="time">
+                                <input type="time" class="form-control" id="time" name="time" step="1">
                             </div>
                         </div>
                         <div class="row mb-3">
@@ -140,8 +140,8 @@
                         <div class="row mb-3">
                             <label for="dot_brightness" class="col-sm-2 col-form-label">Dot brightness</label>
                             <div class="col-sm-4">
-                                <input type="number" class="form-control" id="dot_brightness" name="dot_brightness" min="32"
-                                    max="255">
+                                <input type="number" class="form-control" id="dot_brightness" name="dot_brightness"
+                                    min="32" max="255">
                             </div>
                         </div>
                         <div class="row mb-3">
@@ -238,9 +238,10 @@
     <script src="bootstrap.bundle.min.js"></script>
     <script src="coloris.min.js"></script>
     <script>
+        document.getElementById('time').value = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+        document.getElementById("date").valueAsDate = new Date();
+        
         fetch('/get-time').then(response => response.json()).then(data => {
-            document.getElementById('time').value = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-            document.getElementById("date").valueAsDate = new Date();
             document.getElementById('sync_time').value = data['sync_time'];
             document.getElementById('time_zone').value = data['time_zone'];
             document.getElementById('24h_format').value = data['24h_format'];
