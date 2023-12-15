@@ -261,6 +261,26 @@
         document.getElementById('time').value = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
         document.getElementById("date").valueAsDate = new Date();
 
+        const ledColor = document.getElementById('led_color');
+        const ledMode = document.getElementById('led_mode');
+
+        function ledColorUpdateAttr(ledMode)
+        {
+            if (ledMode == 1 || ledMode == 4) {
+                ledColor.removeAttribute('disabled');
+            } else {
+                ledColor.setAttribute('disabled','');
+            }
+        };
+
+        ledMode.onchange = function () {
+            ledColorUpdateAttr(this.value);
+        };
+
+        Coloris({
+            alpha: false
+        });
+
         fetch('/get-time').then(response => response.json()).then(data => {
             document.getElementById('sync_time').value = data['sync_time'];
             document.getElementById('time_zone').value = data['time_zone'];
@@ -283,12 +303,9 @@
 
         fetch('/get-led-settings').then(response => response.json()).then(data => {
             document.getElementById('led_bright').value = data['led_bright'];
-            document.getElementById('led_color').value = data['led_color'];
-            document.getElementById('led_mode').value = data['led_mode'];
-
-            Coloris({
-                alpha: false
-            });
+            ledMode.value = data['led_mode'];
+            ledColor.value = data['led_color'];
+            ledColorUpdateAttr(ledMode.value);
         });
 
         fetch('/get-network-settings').then(response => response.json()).then(data => {
