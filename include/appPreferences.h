@@ -14,6 +14,13 @@
 #define NIXIE_BRIGHTNESS "nixie_bright"
 #define NIXIE_BRIGHTNESS_DEFAULT 255
 
+#define NIGHT_BRIGHTNESS_PERCENT "night_bright"
+#define NIGHT_BRIGHTNESS_PERCENT_DEFAULT 50
+#define NIGHT_FROM "night_from"
+#define NIGHT_FROM_DEFAULT (23*60)
+#define NIGHT_TO "night_to"
+#define NIGHT_TO_DEFAULT (7*60)
+
 #define SYNC_TIME "sync_time"
 #define TIME_ZONE "time_zone"
 
@@ -21,7 +28,8 @@
 
 #define EVERY_30_SEC_DISP_MODE 0
 #define EVERY_MIN_DISP_MODE 1  
-#define EVERY_2_MIN_DISP_MODE 2 
+#define EVERY_2_MIN_DISP_MODE 2
+#define EVERY_5_MIN_DISP_MODE 3
 
 #define DISPLAY_MODE "display_mode"
 
@@ -89,6 +97,10 @@ private:
     String hostname;
 
     uint8_t nixieBrightness;
+    uint8_t nightBrightnessPercent;
+    
+    uint16_t nightFromInMinutes;
+    uint16_t nightToInMinutes;
 
     uint8_t syncTime;
     String timeZone;
@@ -129,6 +141,18 @@ public:
     uint8_t getNixieBrightness(void);
 
     void setNixieBrightness(uint8_t val);
+
+    uint8_t getNightBrightnessPercent(void);
+
+    void setNightBrightnessPercent(uint8_t val);
+
+    uint16_t getNightFromInMinutes(void);
+
+    void setNightFromInMinutes(uint16_t val);
+
+    uint16_t getNightToInMinutes(void);
+
+    void setNightToInMinutes(uint16_t val);
 
     uint8_t getSyncTime(void);
 

@@ -28,7 +28,6 @@ RtcDateTime now;
 RtcTemperature temperature;
 
 CRGB leds[LED_COUNT];
-
 CRGB color;
 
 void startAP()
@@ -112,6 +111,18 @@ void setupWebserver()
       StaticJsonDocument<256> doc;
       
       doc[NIXIE_BRIGHTNESS]=AppPreferences.getNixieBrightness();
+      doc[NIGHT_BRIGHTNESS_PERCENT] = AppPreferences.getNightBrightnessPercent();
+      
+      uint16_t nightFromInMins = AppPreferences.getNightFromInMinutes();
+      char nightFrom[5];
+      sprintf(nightFrom,"%02u:%02u", nightFromInMins/60, nightFromInMins % 60);
+      doc[NIGHT_FROM] = nightFrom;
+      
+      uint16_t nightToInMins = AppPreferences.getNightToInMinutes();
+      char nightTo[5];
+      sprintf(nightTo,"%02u:%02u", nightToInMins/60, nightToInMins % 60);
+      doc[NIGHT_TO] = nightTo; 
+
       doc[DISPLAY_MODE_FREQ]=AppPreferences.getDisplayModeFreq();
       doc[DISPLAY_MODE]=AppPreferences.getDisplayMode();
       doc[DIGIT_EFFECT]=AppPreferences.getDigitEffect();
@@ -166,7 +177,8 @@ void setupWebserver()
     String time = request->getParam("time", true)->value();
 
     uint8_t hour = time.substring(0,2).toInt();
-    uint8_t minute = time.substring(3).toInt();
+    uint8_t minute = time.substring(3,5).toInt();
+    uint8_t second = time.substring(6).toInt();
 
     String date = request->getParam("date",true)->value();
 
@@ -174,7 +186,7 @@ void setupWebserver()
     uint8_t month = date.substring(5,7).toInt();
     uint8_t day = date.substring(8).toInt();
 
-    RtcDateTime updatedTime = RtcDateTime(year, month, day, hour, minute, now.Second());
+    RtcDateTime updatedTime = RtcDateTime(year, month, day, hour, minute, second);
 
     Rtc.SetDateTime(updatedTime);
 
@@ -196,6 +208,17 @@ void setupWebserver()
               uint8_t nixieBrightness = request->getParam(NIXIE_BRIGHTNESS,true)->value().toInt();
               Nixie.setBrightness(nixieBrightness);
               AppPreferences.setNixieBrightness(nixieBrightness);
+
+              uint8_t nightBrightness = request->getParam(NIGHT_BRIGHTNESS_PERCENT, true)->value().toInt();
+              AppPreferences.setNightBrightnessPercent(nightBrightness);
+
+              String nightFrom = request->getParam(NIGHT_FROM, true)->value();
+              uint16_t nightFromInMinutes = nightFrom.substring(0,2).toInt()*60 + nightFrom.substring(3).toInt();
+              AppPreferences.setNightFromInMinutes(nightFromInMinutes);
+
+              String nightTo = request->getParam(NIGHT_TO, true)->value();
+              uint16_t nightToInMinutes = nightTo.substring(0,2).toInt()*60 + nightTo.substring(3).toInt();
+              AppPreferences.setNightToInMinutes(nightToInMinutes);
 
               uint8_t displayModeFreq = request->getParam(DISPLAY_MODE_FREQ,true)->value().toInt();
               AppPreferences.setDisplayModeFreq(displayModeFreq);
@@ -313,8 +336,12 @@ bool checkTransition()
     return now.Second() == 30;
     break;
 
-  default:
+  case EVERY_2_MIN_DISP_MODE:
     return now.Minute() % 2 == 0 && now.Second() == 30;
+    break;
+
+  default:
+    return now.Minute() % 5 == 0 && now.Second() == 30;
     break;
   }
 }
@@ -344,12 +371,25 @@ void doTransition(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_
   }
 }
 
+bool isNightTime()
+{
+  uint16_t nightFromInMinutes = AppPreferences.getNightFromInMinutes();
+  uint16_t nightToInMinutes = AppPreferences.getNightToInMinutes();
+  uint16_t nowInMins = now.Hour() * 60 + now.Minute();
+
+  return (nightFromInMinutes <= nightToInMinutes && nowInMins >= nightFromInMinutes && nowInMins < nightToInMinutes) ||
+         (nightFromInMinutes > nightToInMinutes && (nowInMins < nightToInMinutes || nowInMins >= nightFromInMinutes));
+}
+
 void updateNixieTask(void *params)
 {
+  uint8_t brightness;
   uint8_t hour;
   uint16_t tempCenti;
   for (;;)
   {
+    brightness = isNightTime() ? AppPreferences.getNixieBrightness() * AppPreferences.getNightBrightnessPercent() / 100 : AppPreferences.getNixieBrightness();
+    Nixie.setBrightness(brightness);
     if (checkTransition())
     {
       switch (AppPreferences.getDisplayMode())
@@ -401,6 +441,7 @@ void updateNixieTask(void *params)
 
 void toggleDotsTask(void *params)
 {
+  uint8_t brightness;
   boolean isOn = 0;
   for (;;)
   {
@@ -411,7 +452,8 @@ void toggleDotsTask(void *params)
       break;
 
     case DOT_ON_MODE:
-      ledcWrite(PWM_DOT_CHANNEL, AppPreferences.getDotBrightness());
+      brightness = isNightTime() ? AppPreferences.getDotBrightness() * AppPreferences.getNightBrightnessPercent() / 100 : AppPreferences.getDotBrightness();
+      ledcWrite(PWM_DOT_CHANNEL, brightness);
       break;
 
     default:
@@ -422,7 +464,8 @@ void toggleDotsTask(void *params)
       }
       else
       {
-        ledcWrite(PWM_DOT_CHANNEL, AppPreferences.getDotBrightness());
+        brightness = isNightTime() ? AppPreferences.getDotBrightness() * AppPreferences.getNightBrightnessPercent() / 100 : AppPreferences.getDotBrightness();
+        ledcWrite(PWM_DOT_CHANNEL, brightness);
         isOn = true;
       }
       break;
@@ -433,28 +476,30 @@ void toggleDotsTask(void *params)
 
 void updateLedsTask(void *args)
 {
+  uint8_t brightness;
   uint8_t hue;
   uint8_t fadeBrightness;
   int fadeAdd;
   for (;;)
   {
+    brightness = isNightTime() ? AppPreferences.getLedBrightness() * AppPreferences.getNightBrightnessPercent() / 100 : AppPreferences.getLedBrightness();
     switch (AppPreferences.getLedMode())
     {
     case LED_MODE_STATIC:
-      FastLED.setBrightness(AppPreferences.getLedBrightness());
+      FastLED.setBrightness(brightness);
       FastLED.showColor(color);
       vTaskDelay(1000 / portTICK_PERIOD_MS);
       break;
 
     case LED_MODE_RAINBOW:
+      FastLED.setBrightness(brightness);
       hue = (hue + 1) % 256;
-      FastLED.setBrightness(AppPreferences.getLedBrightness());
       FastLED.showColor(CHSV(hue, 255, 255));
       vTaskDelay(20 / portTICK_PERIOD_MS);
       break;
 
     case LED_MODE_RAINBOW_CHASE:
-      FastLED.setBrightness(AppPreferences.getLedBrightness());
+      FastLED.setBrightness(brightness);
       for (int i = 0; i < LED_COUNT; i++)
       {
         leds[i] = CHSV(hue + i * 12, 255, 255);
@@ -469,7 +514,7 @@ void updateLedsTask(void *args)
       {
         fadeAdd = 1;
       }
-      else if (fadeBrightness == AppPreferences.getLedBrightness())
+      else if (fadeBrightness == brightness)
       {
         fadeAdd = -1;
       }
@@ -481,7 +526,7 @@ void updateLedsTask(void *args)
 
     default:
       FastLED.showColor(0);
-      vTaskDelay(2000 / (AppPreferences.getLedBrightness() * portTICK_PERIOD_MS));
+      vTaskDelay(2000 / portTICK_PERIOD_MS);
       break;
     }
   }
@@ -513,27 +558,21 @@ void setup()
   AppPreferences.begin();
 
   Rtc.Begin();
-
   now = Rtc.GetDateTime();
-
   xTaskCreate(updateTimeTask, "update time", 2048, NULL, 1, NULL);
 
-  Nixie.setBrightness(AppPreferences.getNixieBrightness());
   Nixie.begin();
-
   xTaskCreate(updateNixieTask, "update nixie", 1024, NULL, 1, NULL);
-
-  FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, LED_COUNT);
-
-  color = CRGB(AppPreferences.getLedColor());
-
-  xTaskCreate(updateLedsTask, "update leds", 1024, NULL, 4, NULL);
 
   ledcSetup(PWM_DOT_CHANNEL, PWM_DOT_FREQ, PWM_DOT_RES);
   ledcAttachPin(DOT_1_PIN, PWM_DOT_CHANNEL);
   ledcAttachPin(DOT_2_PIN, PWM_DOT_CHANNEL);
 
   xTaskCreate(toggleDotsTask, "toggle dots", 1024, NULL, 1, NULL);
+
+  FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, LED_COUNT);
+  color = CRGB(AppPreferences.getLedColor());
+  xTaskCreate(updateLedsTask, "update leds", 1024, NULL, 4, NULL);
 
   setupWifi();
   setupWebserver();

@@ -15,17 +15,25 @@ void AppPreferencesClass::begin(void)
     ssid = preferences.getString(SSID_PARAM);
     password = preferences.getString(PASSWORD);
     hostname = preferences.getString(HOSTNAME, HOSTNAME_DEFAULT);
+
     nixieBrightness = preferences.getUInt(NIXIE_BRIGHTNESS, NIXIE_BRIGHTNESS_DEFAULT);
+    nightBrightnessPercent = preferences.getUInt(NIGHT_BRIGHTNESS_PERCENT, NIGHT_BRIGHTNESS_PERCENT_DEFAULT);
+    nightFromInMinutes = preferences.getUInt(NIGHT_FROM, NIGHT_FROM_DEFAULT);
+    nightToInMinutes = preferences.getUInt(NIGHT_TO, NIGHT_TO_DEFAULT);
+
     syncTime = preferences.getUInt(SYNC_TIME);
     timeZone = preferences.getString(TIME_ZONE);
+
     displayModeFreq = preferences.getUInt(DISPLAY_MODE_FREQ);
     displayMode = preferences.getUInt(DISPLAY_MODE);
     digitEffect = preferences.getUInt(DIGIT_EFFECT);
     transitionEffect = preferences.getUInt(TRANSITION_EFFECT, FLIP_SEQ_TRANSITION_EFFECT);
     h24Format = preferences.getUInt(H24_FORMAT, 1);
     celsiusTemp = preferences.getUInt(CELSIUS_TEMP, 1);
+
     dotBrightness = preferences.getUInt(DOT_BRIGHTNESS, DOT_BRIGHTNESS_DEFAULT);
     dotMode = preferences.getUInt(DOT_MODE, DOT_BLINK_MODE);
+
     ledBrightness = preferences.getUInt(LED_BRIGHTNESS, LED_BRIGHTNESS_DEFAULT);
     ledColor = preferences.getUInt(LED_COLOR, LED_COLOR_DEFAULT);
     ledMode = preferences.getUInt(LED_MODE, LED_MODE_STATIC);
@@ -73,6 +81,39 @@ void AppPreferencesClass::setNixieBrightness(uint8_t val)
 {
     nixieBrightness = val;
     preferences.putUInt(NIXIE_BRIGHTNESS, val);
+}
+
+uint8_t AppPreferencesClass::getNightBrightnessPercent(void)
+{
+    return nightBrightnessPercent;
+}
+
+void AppPreferencesClass::setNightBrightnessPercent(uint8_t val)
+{
+    nightBrightnessPercent = val;
+    preferences.putUInt(NIGHT_BRIGHTNESS_PERCENT, val);
+}
+
+uint16_t AppPreferencesClass::getNightFromInMinutes(void)
+{
+    return nightFromInMinutes;
+}
+
+void AppPreferencesClass::setNightFromInMinutes(uint16_t val)
+{
+    nightFromInMinutes = val;
+    preferences.putUInt(NIGHT_FROM, val);
+}
+
+uint16_t AppPreferencesClass::getNightToInMinutes(void)
+{
+    return nightToInMinutes;
+}
+
+void AppPreferencesClass::setNightToInMinutes(uint16_t val)
+{
+    nightToInMinutes = val;
+    preferences.putUInt(NIGHT_TO, val);
 }
 
 uint8_t AppPreferencesClass::getSyncTime(void)
