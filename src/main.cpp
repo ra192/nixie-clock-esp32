@@ -1,23 +1,20 @@
 #include <Arduino.h>
 
-#include <ESPmDNS.h>
+#include <SPIFFS.h>
+#include "time.h"
 
+#include <ESPmDNS.h>
 #include <AsyncTCP.h>
 #include "ESPAsyncWebServer.h"
 #include "AsyncJson.h"
 #include "ArduinoJson.h"
-
-#include <SPIFFS.h>
-
-#include <FastLED.h>
-
-#include "time.h"
 
 #include <Wire.h> // must be included here so that Arduino library object file references work
 #include <RtcDS3231.h>
 
 #include <appPreferences.h>
 #include <nixie.h>
+#include <led.h>
 
 int wifiNetworksCount;
 
@@ -26,9 +23,6 @@ AsyncWebServer server(80);
 RtcDS3231<TwoWire> Rtc(Wire);
 RtcDateTime now;
 RtcTemperature temperature;
-
-CRGB leds[LED_COUNT];
-CRGB color;
 
 void startAP()
 {
@@ -245,18 +239,22 @@ void setupWebserver()
 
   server.on("/save-led-settings", HTTP_POST, [](AsyncWebServerRequest *request)
             { 
-              uint8_t ledBrightness = request->getParam(LED_BRIGHTNESS,true)->value().toInt();
-              FastLED.setBrightness(ledBrightness);
+              uint8_t ledBrightness = request->getParam(LED_BRIGHTNESS, true)->value().toInt();
+              Led.setBrightness(ledBrightness);
               AppPreferences.setLedBrightness(ledBrightness);
 
-              String colorStr=request->getParam(LED_COLOR, true)->value();
-              colorStr.replace("#","");
-              int colorInt = strtol(colorStr.c_str(),0,16);
+              if(request->hasParam(LED_COLOR, true))
+              {
+                String colorStr=request->getParam(LED_COLOR, true)->value();
+                colorStr.replace("#","");
+                int colorInt = strtol(colorStr.c_str(),0,16);
               
-              color = CRGB(colorInt);
-              AppPreferences.setLedColor(colorInt);
+                Led.setColor(colorInt);
+                AppPreferences.setLedColor(colorInt);
+              }
 
               uint8_t ledMode = request->getParam(LED_MODE, true)->value().toInt();
+              Led.setMode(ledMode);
               AppPreferences.setLedMode(ledMode);
 
               request->redirect("/"); });
@@ -381,15 +379,32 @@ bool isNightTime()
          (nightFromInMinutes > nightToInMinutes && (nowInMins < nightToInMinutes || nowInMins >= nightFromInMinutes));
 }
 
+void setBrightness(void)
+{
+  uint8_t nixieBrightness;
+  uint8_t ledBrightness;
+
+  if(isNightTime())
+    {
+      nixieBrightness = AppPreferences.getNixieBrightness() * AppPreferences.getNightBrightnessPercent() / 100;
+      ledBrightness = AppPreferences.getLedBrightness() * AppPreferences.getNightBrightnessPercent() / 100;
+    }
+    else
+    {
+      nixieBrightness = AppPreferences.getNixieBrightness();
+      ledBrightness = AppPreferences.getLedBrightness();
+    }
+    Nixie.setBrightness(nixieBrightness);
+    Led.setBrightness(ledBrightness);
+}
+
 void updateNixieTask(void *params)
 {
-  uint8_t brightness;
   uint8_t hour;
   uint16_t tempCenti;
   for (;;)
   {
-    brightness = isNightTime() ? AppPreferences.getNixieBrightness() * AppPreferences.getNightBrightnessPercent() / 100 : AppPreferences.getNixieBrightness();
-    Nixie.setBrightness(brightness);
+    setBrightness();
     if (checkTransition())
     {
       switch (AppPreferences.getDisplayMode())
@@ -441,10 +456,11 @@ void updateNixieTask(void *params)
 
 void toggleDotsTask(void *params)
 {
-  uint8_t brightness;
   boolean isOn = 0;
+  uint8_t brightness;
   for (;;)
   {
+    brightness = isNightTime() ? AppPreferences.getDotBrightness() * AppPreferences.getNightBrightnessPercent() / 100 : AppPreferences.getDotBrightness();
     switch (AppPreferences.getDotMode())
     {
     case DOT_OFF_MODE:
@@ -452,7 +468,6 @@ void toggleDotsTask(void *params)
       break;
 
     case DOT_ON_MODE:
-      brightness = isNightTime() ? AppPreferences.getDotBrightness() * AppPreferences.getNightBrightnessPercent() / 100 : AppPreferences.getDotBrightness();
       ledcWrite(PWM_DOT_CHANNEL, brightness);
       break;
 
@@ -464,71 +479,12 @@ void toggleDotsTask(void *params)
       }
       else
       {
-        brightness = isNightTime() ? AppPreferences.getDotBrightness() * AppPreferences.getNightBrightnessPercent() / 100 : AppPreferences.getDotBrightness();
         ledcWrite(PWM_DOT_CHANNEL, brightness);
         isOn = true;
       }
       break;
     }
     vTaskDelay(500 / portTICK_PERIOD_MS);
-  }
-}
-
-void updateLedsTask(void *args)
-{
-  uint8_t brightness;
-  uint8_t hue;
-  uint8_t fadeBrightness;
-  int fadeAdd;
-  for (;;)
-  {
-    brightness = isNightTime() ? AppPreferences.getLedBrightness() * AppPreferences.getNightBrightnessPercent() / 100 : AppPreferences.getLedBrightness();
-    switch (AppPreferences.getLedMode())
-    {
-    case LED_MODE_STATIC:
-      FastLED.setBrightness(brightness);
-      FastLED.showColor(color);
-      vTaskDelay(1000 / portTICK_PERIOD_MS);
-      break;
-
-    case LED_MODE_RAINBOW:
-      FastLED.setBrightness(brightness);
-      hue = (hue + 1) % 256;
-      FastLED.showColor(CHSV(hue, 255, 255));
-      vTaskDelay(20 / portTICK_PERIOD_MS);
-      break;
-
-    case LED_MODE_RAINBOW_CHASE:
-      FastLED.setBrightness(brightness);
-      for (int i = 0; i < LED_COUNT; i++)
-      {
-        leds[i] = CHSV(hue + i * 12, 255, 255);
-      }
-      FastLED.show();
-      hue = (hue + 1) % 256;
-      vTaskDelay(100 / portTICK_PERIOD_MS);
-      break;
-
-    case LED_MODE_FADE:
-      if (fadeBrightness == 0)
-      {
-        fadeAdd = 1;
-      }
-      else if (fadeBrightness == brightness)
-      {
-        fadeAdd = -1;
-      }
-      fadeBrightness += fadeAdd;
-      FastLED.setBrightness(fadeBrightness);
-      FastLED.showColor(color);
-      vTaskDelay(30 / portTICK_PERIOD_MS);
-      break;
-
-    default:
-      FastLED.showColor(0);
-      vTaskDelay(2000 / portTICK_PERIOD_MS);
-      break;
-    }
   }
 }
 
@@ -570,9 +526,10 @@ void setup()
 
   xTaskCreate(toggleDotsTask, "toggle dots", 1024, NULL, 1, NULL);
 
-  FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, LED_COUNT);
-  color = CRGB(AppPreferences.getLedColor());
-  xTaskCreate(updateLedsTask, "update leds", 1024, NULL, 4, NULL);
+  Led.setBrightness(AppPreferences.getLedBrightness());
+  Led.setColor(AppPreferences.getLedColor());
+  Led.setMode(AppPreferences.getLedMode());
+  Led.begin();
 
   setupWifi();
   setupWebserver();

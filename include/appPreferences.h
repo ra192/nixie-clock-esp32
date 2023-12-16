@@ -77,15 +77,7 @@
 #define LED_COLOR "led_color"
 #define LED_COLOR_DEFAULT 0xff0000
 #define LED_MODE "led_mode"
-
-#define LED_COUNT 6
-#define LED_PIN 27
-
-#define LED_MODE_OFF 0
-#define LED_MODE_STATIC 1
-#define LED_MODE_RAINBOW 2
-#define LED_MODE_RAINBOW_CHASE 3
-#define LED_MODE_FADE 4
+#define LED_MODE_DEFAULT 1
 
 class AppPreferencesClass
 {

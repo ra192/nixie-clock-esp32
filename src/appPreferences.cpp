@@ -36,7 +36,7 @@ void AppPreferencesClass::begin(void)
 
     ledBrightness = preferences.getUInt(LED_BRIGHTNESS, LED_BRIGHTNESS_DEFAULT);
     ledColor = preferences.getUInt(LED_COLOR, LED_COLOR_DEFAULT);
-    ledMode = preferences.getUInt(LED_MODE, LED_MODE_STATIC);
+    ledMode = preferences.getUInt(LED_MODE, LED_MODE_DEFAULT);
 }
 
 String AppPreferencesClass::getSSID(void)
