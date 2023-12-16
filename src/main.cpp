@@ -14,6 +14,7 @@
 
 #include <appPreferences.h>
 #include <nixie.h>
+#include <dot.h>
 #include <led.h>
 
 int wifiNetworksCount;
@@ -233,6 +234,7 @@ void setupWebserver()
               AppPreferences.setDotBrightness(dotBrightness);
 
               uint8_t dotMode = request->getParam(DOT_MODE, true)->value().toInt();
+              Dot.setMode(dotMode);
               AppPreferences.setDotMode(dotMode);
 
               request->redirect("/"); });
@@ -382,19 +384,23 @@ bool isNightTime()
 void setBrightness(void)
 {
   uint8_t nixieBrightness;
+  uint8_t dotBrightness;
   uint8_t ledBrightness;
 
   if(isNightTime())
     {
       nixieBrightness = AppPreferences.getNixieBrightness() * AppPreferences.getNightBrightnessPercent() / 100;
+      dotBrightness = AppPreferences.getDotBrightness() * AppPreferences.getNightBrightnessPercent() / 100;
       ledBrightness = AppPreferences.getLedBrightness() * AppPreferences.getNightBrightnessPercent() / 100;
     }
     else
     {
       nixieBrightness = AppPreferences.getNixieBrightness();
+      dotBrightness = AppPreferences.getDotBrightness();
       ledBrightness = AppPreferences.getLedBrightness();
     }
     Nixie.setBrightness(nixieBrightness);
+    Dot.setBrightness(dotBrightness);
     Led.setBrightness(ledBrightness);
 }
 
@@ -454,40 +460,6 @@ void updateNixieTask(void *params)
   }
 }
 
-void toggleDotsTask(void *params)
-{
-  boolean isOn = 0;
-  uint8_t brightness;
-  for (;;)
-  {
-    brightness = isNightTime() ? AppPreferences.getDotBrightness() * AppPreferences.getNightBrightnessPercent() / 100 : AppPreferences.getDotBrightness();
-    switch (AppPreferences.getDotMode())
-    {
-    case DOT_OFF_MODE:
-      ledcWrite(PWM_DOT_CHANNEL, 0);
-      break;
-
-    case DOT_ON_MODE:
-      ledcWrite(PWM_DOT_CHANNEL, brightness);
-      break;
-
-    default:
-      if (isOn)
-      {
-        ledcWrite(PWM_DOT_CHANNEL, 0);
-        isOn = false;
-      }
-      else
-      {
-        ledcWrite(PWM_DOT_CHANNEL, brightness);
-        isOn = true;
-      }
-      break;
-    }
-    vTaskDelay(500 / portTICK_PERIOD_MS);
-  }
-}
-
 void syncTimeTask(void *params)
 {
   for (;;)
@@ -520,13 +492,9 @@ void setup()
   Nixie.begin();
   xTaskCreate(updateNixieTask, "update nixie", 1024, NULL, 1, NULL);
 
-  ledcSetup(PWM_DOT_CHANNEL, PWM_DOT_FREQ, PWM_DOT_RES);
-  ledcAttachPin(DOT_1_PIN, PWM_DOT_CHANNEL);
-  ledcAttachPin(DOT_2_PIN, PWM_DOT_CHANNEL);
+  Dot.setMode(AppPreferences.getDotMode());
+  Dot.begin();
 
-  xTaskCreate(toggleDotsTask, "toggle dots", 1024, NULL, 1, NULL);
-
-  Led.setBrightness(AppPreferences.getLedBrightness());
   Led.setColor(AppPreferences.getLedColor());
   Led.setMode(AppPreferences.getLedMode());
   Led.begin();

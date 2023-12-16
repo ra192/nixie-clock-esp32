@@ -57,20 +57,10 @@
 #define H24_FORMAT "24h_format"
 #define CELSIUS_TEMP "celsius_temp"
 
-#define DOT_1_PIN 2
-#define DOT_2_PIN 23
-
-#define PWM_DOT_CHANNEL 7
-#define PWM_DOT_FREQ 10000
-#define PWM_DOT_RES 8
-
 #define DOT_BRIGHTNESS "dot_brightness"
 #define DOT_BRIGHTNESS_DEFAULT 128
 #define DOT_MODE "dot_mode"
-
-#define DOT_OFF_MODE 0
-#define DOT_ON_MODE 1
-#define DOT_BLINK_MODE 2
+#define DOT_MODE_DEFAULT 2
 
 #define LED_BRIGHTNESS "led_bright"
 #define LED_BRIGHTNESS_DEFAULT 64

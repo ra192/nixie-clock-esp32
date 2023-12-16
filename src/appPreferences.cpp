@@ -32,7 +32,7 @@ void AppPreferencesClass::begin(void)
     celsiusTemp = preferences.getUInt(CELSIUS_TEMP, 1);
 
     dotBrightness = preferences.getUInt(DOT_BRIGHTNESS, DOT_BRIGHTNESS_DEFAULT);
-    dotMode = preferences.getUInt(DOT_MODE, DOT_BLINK_MODE);
+    dotMode = preferences.getUInt(DOT_MODE, DOT_MODE_DEFAULT);
 
     ledBrightness = preferences.getUInt(LED_BRIGHTNESS, LED_BRIGHTNESS_DEFAULT);
     ledColor = preferences.getUInt(LED_COLOR, LED_COLOR_DEFAULT);
