@@ -38,7 +38,7 @@ void ClockClass::syncTimeTask(void *params)
 void ClockClass::begin()
 {
     Rtc.Begin();
-    xTaskCreate(updateTimeTask, "update time", 2048, this, 1, NULL);
+    xTaskCreate(updateTimeTask, "update time", 2048, this, 2, NULL);
 
     configTzTime(timeZone.c_str(), "pool.ntp.org");
     xTaskCreate(syncTimeTask, "sync time", 2048, this, 1, NULL);

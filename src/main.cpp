@@ -440,7 +440,7 @@ void setup()
   Clock.begin();
 
   Nixie.begin();
-  xTaskCreate(updateNixieTask, "update nixie", 1024, NULL, 1, NULL);
+  xTaskCreate(updateNixieTask, "update nixie", 1024, NULL, 2, NULL);
 
   Dot.setMode(AppPreferences.getDotMode());
   Dot.begin();
