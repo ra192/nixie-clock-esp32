@@ -1,7 +1,6 @@
 #include <Arduino.h>
 
 #include <SPIFFS.h>
-#include "time.h"
 
 #include <ESPmDNS.h>
 #include <AsyncTCP.h>
@@ -9,10 +8,8 @@
 #include "AsyncJson.h"
 #include "ArduinoJson.h"
 
-#include <Wire.h> // must be included here so that Arduino library object file references work
-#include <RtcDS3231.h>
-
 #include <appPreferences.h>
+#include <clock.h>
 #include <nixie.h>
 #include <dot.h>
 #include <led.h>
@@ -20,10 +17,6 @@
 int wifiNetworksCount;
 
 AsyncWebServer server(80);
-
-RtcDS3231<TwoWire> Rtc(Wire);
-RtcDateTime now;
-RtcTemperature temperature;
 
 void startAP()
 {
@@ -181,19 +174,18 @@ void setupWebserver()
     uint8_t month = date.substring(5,7).toInt();
     uint8_t day = date.substring(8).toInt();
 
-    RtcDateTime updatedTime = RtcDateTime(year, month, day, hour, minute, second);
-
-    Rtc.SetDateTime(updatedTime);
+    Clock.setDateTime(year, month, day, hour, minute, second);
 
     uint8_t syncTime = request->getParam(SYNC_TIME, true)->value().toInt();
+    Clock.setSyncTime(syncTime);
     AppPreferences.setSyncTime(syncTime);
 
     String timeZone = request->getParam(TIME_ZONE, true)->value();
+    Clock.setTimeZone(timeZone);
     AppPreferences.setTimeZone(timeZone);
 
-    configTzTime(timeZone.c_str(), "pool.ntp.org");
-
     uint8_t h24Format = request->getParam(H24_FORMAT,true)->value().toInt();
+    Clock.setH24Format(h24Format);
     AppPreferences.setH24Format(h24Format);
 
     request->redirect("/"); });
@@ -220,6 +212,8 @@ void setupWebserver()
 
               uint8_t displayMode = request->getParam(DISPLAY_MODE,true)->value().toInt();
               AppPreferences.setDisplayMode(displayMode);
+              bool readTemp = displayMode == TIME_DATE_TEMP_DISP_MODE || displayMode == TIME_TEMP_DISP_MODE;
+              Clock.setReadTemp(readTemp);
 
               uint8_t digitEffect = request->getParam(DIGIT_EFFECT, true)->value().toInt();
               AppPreferences.setDigitEffect(digitEffect);
@@ -228,6 +222,7 @@ void setupWebserver()
               AppPreferences.setTransitionEffect(transitionEffect);
 
               uint8_t celsiusTemp = request->getParam(CELSIUS_TEMP,true)->value().toInt();
+              Clock.setCelsiusTemp(celsiusTemp);
               AppPreferences.setCelsiusTemp(celsiusTemp);
 
               uint8_t dotBrightness = request->getParam(DOT_BRIGHTNESS, true)->value().toInt();
@@ -266,45 +261,6 @@ void setupWebserver()
   server.begin();
 }
 
-void updateTimeTask(void *params)
-{
-  for (;;)
-  {
-    now = Rtc.GetDateTime();
-    if (AppPreferences.getDisplayMode() == TIME_DATE_TEMP_DISP_MODE || AppPreferences.getDisplayMode() == TIME_TEMP_DISP_MODE)
-      temperature = Rtc.GetTemperature();
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-  }
-}
-
-uint8_t getHour()
-{
-  if (now.Hour() == 0 && !AppPreferences.getH24Format())
-  {
-    return 12;
-  }
-  else if (now.Hour() > 12 && !AppPreferences.getH24Format())
-  {
-    return now.Hour() - 12;
-  }
-  else
-  {
-    return now.Hour();
-  }
-}
-
-uint16_t getTempCenti()
-{
-  if (AppPreferences.getCelsiusTemp())
-  {
-    return temperature.AsCentiDegC();
-  }
-  else
-  {
-    return temperature.AsFloatDegF() * 100;
-  }
-}
-
 void changeDigits(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6)
 {
   switch (AppPreferences.getDigitEffect())
@@ -329,19 +285,19 @@ bool checkTransition()
   switch (AppPreferences.getDisplayModeFreq())
   {
   case EVERY_30_SEC_DISP_MODE:
-    return now.Second() % 30 == 0;
+    return Clock.getSecond() % 30 == 0;
     break;
 
   case EVERY_MIN_DISP_MODE:
-    return now.Second() == 30;
+    return Clock.getSecond() == 30;
     break;
 
   case EVERY_2_MIN_DISP_MODE:
-    return now.Minute() % 2 == 0 && now.Second() == 30;
+    return Clock.getMinute() % 2 == 0 && Clock.getSecond() == 30;
     break;
 
   default:
-    return now.Minute() % 5 == 0 && now.Second() == 30;
+    return Clock.getMinute() % 5 == 0 && Clock.getSecond() == 30;
     break;
   }
 }
@@ -371,42 +327,34 @@ void doTransition(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_
   }
 }
 
-bool isNightTime()
-{
-  uint16_t nightFromInMinutes = AppPreferences.getNightFromInMinutes();
-  uint16_t nightToInMinutes = AppPreferences.getNightToInMinutes();
-  uint16_t nowInMins = now.Hour() * 60 + now.Minute();
-
-  return (nightFromInMinutes <= nightToInMinutes && nowInMins >= nightFromInMinutes && nowInMins < nightToInMinutes) ||
-         (nightFromInMinutes > nightToInMinutes && (nowInMins < nightToInMinutes || nowInMins >= nightFromInMinutes));
-}
-
 void setBrightness(void)
 {
   uint8_t nixieBrightness;
   uint8_t dotBrightness;
   uint8_t ledBrightness;
 
-  if(isNightTime())
-    {
-      nixieBrightness = AppPreferences.getNixieBrightness() * AppPreferences.getNightBrightnessPercent() / 100;
-      dotBrightness = AppPreferences.getDotBrightness() * AppPreferences.getNightBrightnessPercent() / 100;
-      ledBrightness = AppPreferences.getLedBrightness() * AppPreferences.getNightBrightnessPercent() / 100;
-    }
-    else
-    {
-      nixieBrightness = AppPreferences.getNixieBrightness();
-      dotBrightness = AppPreferences.getDotBrightness();
-      ledBrightness = AppPreferences.getLedBrightness();
-    }
-    Nixie.setBrightness(nixieBrightness);
-    Dot.setBrightness(dotBrightness);
-    Led.setBrightness(ledBrightness);
+  if (Clock.isNightTime(AppPreferences.getNightFromInMinutes(), AppPreferences.getNightToInMinutes()))
+  {
+    nixieBrightness = AppPreferences.getNixieBrightness() * AppPreferences.getNightBrightnessPercent() / 100;
+    dotBrightness = AppPreferences.getDotBrightness() * AppPreferences.getNightBrightnessPercent() / 100;
+    ledBrightness = AppPreferences.getLedBrightness() * AppPreferences.getNightBrightnessPercent() / 100;
+  }
+  else
+  {
+    nixieBrightness = AppPreferences.getNixieBrightness();
+    dotBrightness = AppPreferences.getDotBrightness();
+    ledBrightness = AppPreferences.getLedBrightness();
+  }
+  Nixie.setBrightness(nixieBrightness);
+  Dot.setBrightness(dotBrightness);
+  Led.setBrightness(ledBrightness);
 }
 
 void updateNixieTask(void *params)
 {
   uint8_t hour;
+  uint8_t minute;
+  uint8_t second;
   uint16_t tempCenti;
   for (;;)
   {
@@ -416,66 +364,61 @@ void updateNixieTask(void *params)
       switch (AppPreferences.getDisplayMode())
       {
       case TIME_DATE_DISP_MODE:
-        doTransition(now.Day() / 10, now.Day() % 10, now.Month() / 10, now.Month() % 10, now.Year() % 100 / 10, now.Year() % 10);
+        doTransition(Clock.getDay() / 10, Clock.getDay() % 10, Clock.getMonth() / 10, Clock.getMonth() % 10, Clock.getYear() % 100 / 10, Clock.getYear() % 10);
         vTaskDelay(2000);
 
-        hour = getHour();
-        doTransition(hour / 10, hour % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+        hour = Clock.getHour();
+        minute = Clock.getMinute();
+        second = Clock.getSecond();
+
+        doTransition(hour / 10, hour % 10, minute / 10, minute % 10, second / 10, second % 10);
 
         break;
 
       case TIME_TEMP_DISP_MODE:
-        tempCenti = getTempCenti();
+        tempCenti = Clock.getTempCenti();
         doTransition(EMPTY_DIGIT, EMPTY_DIGIT, tempCenti / 1000, tempCenti % 1000 / 100, tempCenti % 100 / 10, EMPTY_DIGIT);
         vTaskDelay(2000);
 
-        hour = getHour();
-        doTransition(hour / 10, hour % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+        hour = Clock.getHour();
+        minute = Clock.getMinute();
+        second = Clock.getSecond();
+        doTransition(hour / 10, hour % 10, minute / 10, minute % 10, second / 10, second % 10);
 
         break;
 
       case TIME_DATE_TEMP_DISP_MODE:
-        doTransition(now.Day() / 10, now.Day() % 10, now.Month() / 10, now.Month() % 10, now.Year() % 100 / 10, now.Year() % 10);
+        doTransition(Clock.getDay() / 10, Clock.getDay() % 10, Clock.getMonth() / 10, Clock.getMonth() % 10, Clock.getYear() % 100 / 10, Clock.getYear() % 10);
         vTaskDelay(2000);
 
-        tempCenti = getTempCenti();
+        tempCenti = Clock.getTempCenti();
         doTransition(EMPTY_DIGIT, EMPTY_DIGIT, tempCenti / 1000, tempCenti % 1000 / 100, tempCenti % 100 / 10, EMPTY_DIGIT);
         vTaskDelay(2000);
 
-        hour = getHour();
-        doTransition(hour / 10, hour % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+        hour = Clock.getHour();
+        minute = Clock.getMinute();
+        second = Clock.getSecond();
+        doTransition(hour / 10, hour % 10, minute / 10, minute % 10, second / 10, second % 10);
 
         break;
 
       default:
-        doTransition(hour / 10, hour % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+        hour = Clock.getHour();
+        minute = Clock.getMinute();
+        second = Clock.getSecond();
+
+        doTransition(hour / 10, hour % 10, minute / 10, minute % 10, second / 10, second % 10);
         break;
       }
     }
     else
     {
-      hour = getHour();
-      changeDigits(hour / 10, hour % 10, now.Minute() / 10, now.Minute() % 10, now.Second() / 10, now.Second() % 10);
+      hour = Clock.getHour();
+      minute = Clock.getMinute();
+      second = Clock.getSecond();
+      
+      changeDigits(hour / 10, hour % 10, minute / 10, minute % 10, second / 10, second % 10);
     }
-  }
-}
-
-void syncTimeTask(void *params)
-{
-  for (;;)
-  {
-    if (AppPreferences.getSyncTime())
-    {
-      struct tm timeinfo;
-
-      if (getLocalTime(&timeinfo))
-      {
-        RtcDateTime updatedTime = RtcDateTime(timeinfo.tm_year % 100, timeinfo.tm_mon + 1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-        Rtc.SetDateTime(updatedTime);
-      }
-    }
-
-    vTaskDelay(60000 / portTICK_PERIOD_MS);
   }
 }
 
@@ -485,9 +428,16 @@ void setup()
 
   AppPreferences.begin();
 
-  Rtc.Begin();
-  now = Rtc.GetDateTime();
-  xTaskCreate(updateTimeTask, "update time", 2048, NULL, 1, NULL);
+  Clock.setCelsiusTemp(AppPreferences.getCelsiusTemp());
+  Clock.setH24Format(AppPreferences.getH24Format());
+
+  bool readTemp = AppPreferences.getDisplayMode() == TIME_DATE_TEMP_DISP_MODE || AppPreferences.getDisplayMode() == TIME_TEMP_DISP_MODE;
+  Clock.setReadTemp(readTemp);
+
+  Clock.setSyncTime(AppPreferences.getSyncTime());
+  Clock.setTimeZone(AppPreferences.getTimeZone());
+
+  Clock.begin();
 
   Nixie.begin();
   xTaskCreate(updateNixieTask, "update nixie", 1024, NULL, 1, NULL);
@@ -501,13 +451,6 @@ void setup()
 
   setupWifi();
   setupWebserver();
-
-  if (WiFi.isConnected())
-  {
-    configTzTime(AppPreferences.getTimeZone().c_str(), "pool.ntp.org");
-
-    xTaskCreate(syncTimeTask, "sync time", 2048, NULL, 1, NULL);
-  }
 
   wifiNetworksCount = WiFi.scanNetworks();
 }
