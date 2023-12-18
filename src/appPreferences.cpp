@@ -72,6 +72,16 @@ void AppPreferencesClass::setHostname(String val)
     preferences.putString(HOSTNAME, val);
 }
 
+int AppPreferencesClass::getWiFiNetworksCount()
+{
+    return wifiNetworksCount;
+}
+
+void AppPreferencesClass::setWiFiNetworksCount(int val)
+{
+    wifiNetworksCount = val;
+}
+
 uint8_t AppPreferencesClass::getNixieBrightness(void)
 {
     return nixieBrightness;

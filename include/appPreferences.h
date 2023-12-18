@@ -78,6 +78,8 @@ private:
     String password;
     String hostname;
 
+    int wifiNetworksCount;
+
     uint8_t nixieBrightness;
     uint8_t nightBrightnessPercent;
     
@@ -119,6 +121,10 @@ public:
     String getHostname(void);
 
     void setHostname(String val);
+
+    int getWiFiNetworksCount(void);
+
+    void setWiFiNetworksCount(int val);
 
     uint8_t getNixieBrightness(void);
 
