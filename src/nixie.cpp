@@ -1,5 +1,4 @@
 #include <nixie.h>
-#include <Arduino.h>
 
 const uint8_t digitCodes[] = {1, 0, 9, 8, 7, 6, 5, 4, 3, 2, EMPTY_DIGIT};
 
@@ -43,8 +42,11 @@ void NixieClass::setDigVals(uint8_t *digs, uint8_t startInd)
 void NixieClass::refreshTask(void *params)
 {
     NixieClass *nixie = (NixieClass *)params;
-    bool isOn = false;
-    uint8_t current = 4;
+
+    bool isOn;
+    uint8_t current;
+
+    const TickType_t totalDelay = pdMS_TO_TICKS(NIXIE_TOTAL_DELAY_MS);
 
     TickType_t xLastWakeTime = xTaskGetTickCount();
 
@@ -55,19 +57,19 @@ void NixieClass::refreshTask(void *params)
             nixie->offDigit(current);
             isOn = false;
             current = (current + 1) % DIGITS_SIZE;
-            vTaskDelayUntil(&xLastWakeTime, NIXIE_OFF_DELAY);
+            vTaskDelayUntil(&xLastWakeTime, NIXIE_OFF_DELAY_MS / portTICK_PERIOD_MS);
         }
         else if (nixie->digitValues[current] == EMPTY_DIGIT)
         {
             nixie->offDigit(current);
             current = (current + 1) % DIGITS_SIZE;
-            vTaskDelayUntil(&xLastWakeTime, NIXIE_TOTAL_DELAY);
+            vTaskDelayUntil(&xLastWakeTime, NIXIE_TOTAL_DELAY_MS / portTICK_PERIOD_MS);
         }
         else
         {
             nixie->onDigit(current);
             isOn = true;
-            vTaskDelayUntil(&xLastWakeTime, NIXIE_ON_DELAY);
+            vTaskDelayUntil(&xLastWakeTime, NIXIE_ON_DELAY_MS / portTICK_PERIOD_MS);
         }
     }
 }
@@ -102,7 +104,7 @@ void NixieClass::begin()
     ledcSetup(PWM_L6_CHANNEL, PWM_FREQ, PWM_RES);
     ledcAttachPin(L6_PIN, PWM_L6_CHANNEL);
 
-    xTaskCreate(refreshTask, "refresh nixie", 1024, this, configMAX_PRIORITIES - 1, NULL);
+    xTaskCreate(refreshTask, "refresh nixie", 1024, this, NIXIE_REFRESH_TASK_PRIORITY, NULL);
 }
 
 void NixieClass::fade(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6, bool allDigits)
@@ -124,7 +126,7 @@ void NixieClass::fade(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, ui
                 brightnessValues[j] -= brightnessStep;
             }
         }
-        vTaskDelay(FADE_DELAY);
+        vTaskDelay(FADE_DELAY_MS / portTICK_PERIOD_MS);
     }
 
     memcpy(digitValues, newDigs, DIGITS_SIZE);
@@ -138,7 +140,7 @@ void NixieClass::fade(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, ui
                 brightnessValues[j] += brightnessStep;
             }
         }
-        vTaskDelay(FADE_DELAY);
+        vTaskDelay(FADE_DELAY_MS / portTICK_PERIOD_MS);
     }
 
     setBrightness(savedBrightness);
@@ -160,10 +162,10 @@ void NixieClass::flip(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, ui
                 digitValues[j] = digitCodes[i];
             }
         }
-        vTaskDelay(FLIP_ALL_DELAY_MS);
+        vTaskDelay(FLIP_ALL_DELAY_MS / portTICK_PERIOD_MS);
     }
     setDigits(dig1, dig2, dig3, dig4, dig5, dig6);
-    vTaskDelay(500);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
 }
 
 void NixieClass::flipSeq(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t dig5, uint8_t dig6, bool allDigits)
@@ -181,13 +183,13 @@ void NixieClass::flipSeq(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4,
             for (int j = 0; j < 10; j++)
             {
                 digitValues[i] = digitCodes[j];
-                sumDelay+=FLIP_SEQ_DELAY_MS;
-                vTaskDelay(FLIP_SEQ_DELAY_MS);
+                sumDelay += FLIP_SEQ_DELAY_MS / portTICK_PERIOD_MS;
+                vTaskDelay(FLIP_SEQ_DELAY_MS / portTICK_PERIOD_MS);
             }
             digitValues[i] = newDigs[i];
         }
     }
-    vTaskDelay(1000-sumDelay);
+    vTaskDelay(1000 / portTICK_PERIOD_MS - sumDelay);
 }
 
 void NixieClass::setBrightness(uint8_t brightness)
@@ -216,7 +218,7 @@ void NixieClass::shiftLeft(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig
     for (int i = 1; i <= DIGITS_SIZE + 1; i++)
     {
         setDigVals(shiftDigs, i);
-        vTaskDelay(SHIFT_DELAY_MS);
+        vTaskDelay(SHIFT_DELAY_MS / portTICK_PERIOD_MS);
     }
 }
 
@@ -228,7 +230,7 @@ void NixieClass::shiftRight(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t di
     for (int i = 6; i >= 0; i--)
     {
         setDigVals(shiftDigs, i);
-        vTaskDelay(SHIFT_DELAY_MS);
+        vTaskDelay(SHIFT_DELAY_MS / portTICK_PERIOD_MS);
     }
 }
 

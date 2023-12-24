@@ -103,6 +103,7 @@ void DisplayClass::refreshTask(void *params)
     uint8_t minute;
     uint8_t second;
     uint16_t tempCenti;
+
     for (;;)
     {
         display->setBrightness();
@@ -112,7 +113,7 @@ void DisplayClass::refreshTask(void *params)
             {
             case TIME_DATE_DISP_MODE:
                 display->doTransition(Clock.getDay() / 10, Clock.getDay() % 10, Clock.getMonth() / 10, Clock.getMonth() % 10, Clock.getYear() % 100 / 10, Clock.getYear() % 10);
-                vTaskDelay(2000);
+                vTaskDelay(DISPLAY_DATE_TEMP_DELAY_MS / portTICK_PERIOD_MS);
 
                 hour = Clock.getHour();
                 minute = Clock.getMinute();
@@ -125,7 +126,7 @@ void DisplayClass::refreshTask(void *params)
             case TIME_TEMP_DISP_MODE:
                 tempCenti = Clock.getTempCenti();
                 display->doTransition(EMPTY_DIGIT, EMPTY_DIGIT, tempCenti / 1000, tempCenti % 1000 / 100, tempCenti % 100 / 10, EMPTY_DIGIT);
-                vTaskDelay(2000);
+                vTaskDelay(DISPLAY_DATE_TEMP_DELAY_MS / portTICK_PERIOD_MS);
 
                 hour = Clock.getHour();
                 minute = Clock.getMinute();
@@ -136,11 +137,11 @@ void DisplayClass::refreshTask(void *params)
 
             case TIME_DATE_TEMP_DISP_MODE:
                 display->doTransition(Clock.getDay() / 10, Clock.getDay() % 10, Clock.getMonth() / 10, Clock.getMonth() % 10, Clock.getYear() % 100 / 10, Clock.getYear() % 10);
-                vTaskDelay(2000);
+                vTaskDelay(DISPLAY_DATE_TEMP_DELAY_MS / portTICK_PERIOD_MS);
 
                 tempCenti = Clock.getTempCenti();
                 display->doTransition(EMPTY_DIGIT, EMPTY_DIGIT, tempCenti / 1000, tempCenti % 1000 / 100, tempCenti % 100 / 10, EMPTY_DIGIT);
-                vTaskDelay(2000);
+                vTaskDelay(DISPLAY_DATE_TEMP_DELAY_MS / portTICK_PERIOD_MS);
 
                 hour = Clock.getHour();
                 minute = Clock.getMinute();
@@ -171,7 +172,7 @@ void DisplayClass::refreshTask(void *params)
 
 void DisplayClass::begin(void)
 {
-    xTaskCreate(refreshTask, "refresh display", 1024, this, 2, NULL);
+    xTaskCreate(refreshTask, "refresh display", 1024, this, DISPLAY_REFRESH_TASK_PRIORITY, NULL);
 }
 
 DisplayClass Display;

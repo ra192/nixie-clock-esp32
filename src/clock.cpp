@@ -6,18 +6,24 @@
 void ClockClass::updateTimeTask(void *params)
 {
     ClockClass *clock = (ClockClass *)params;
+
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+
     for (;;)
     {
         clock->now = clock->Rtc.GetDateTime();
         if (clock->readTemp)
             clock->temperature = clock->Rtc.GetTemperature();
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelayUntil(&xLastWakeTime, UPDATE_TIME_DELAY_MS / portTICK_PERIOD_MS);
     }
 }
 
 void ClockClass::syncTimeTask(void *params)
 {
     ClockClass *clock = (ClockClass *)params;
+
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+
     for (;;)
     {
         if (WiFi.isConnected() && clock->syncTime)
@@ -31,17 +37,17 @@ void ClockClass::syncTimeTask(void *params)
             }
         }
 
-        vTaskDelay(60000 / portTICK_PERIOD_MS);
+        vTaskDelayUntil(&xLastWakeTime, SYNC_TIME_DELAY_MS / portTICK_PERIOD_MS);
     }
 }
 
 void ClockClass::begin()
 {
     Rtc.Begin();
-    xTaskCreate(updateTimeTask, "update time", 2048, this, 2, NULL);
+    xTaskCreate(updateTimeTask, "update time", 2048, this, UPDATE_TIME_TASK_PRIORITY, NULL);
 
     configTzTime(timeZone.c_str(), "pool.ntp.org");
-    xTaskCreate(syncTimeTask, "sync time", 2048, this, 1, NULL);
+    xTaskCreate(syncTimeTask, "sync time", 2048, this, SYNC_TIME_TASK_PRIORITY, NULL);
 }
 
 uint8_t ClockClass::getYear(void)

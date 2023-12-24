@@ -3,6 +3,9 @@
 
 #include <Arduino.h>
 
+#define DISPLAY_DATE_TEMP_DELAY_MS 2000
+#define DISPLAY_REFRESH_TASK_PRIORITY 2
+
 class DisplayClass
 {
 private:

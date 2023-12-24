@@ -6,6 +6,12 @@
 #include <Wire.h>
 #include <RtcDS3231.h>
 
+#define SYNC_TIME_DELAY_MS 60000
+#define UPDATE_TIME_DELAY_MS 1000
+
+#define UPDATE_TIME_TASK_PRIORITY 2
+#define SYNC_TIME_TASK_PRIORITY 1
+
 class ClockClass
 {
 private:
