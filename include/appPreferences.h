@@ -23,6 +23,7 @@
 
 #define SYNC_TIME "sync_time"
 #define TIME_ZONE "time_zone"
+#define TIME_ZONE_LOCATION "time_zone_loc"
 
 #define DISPLAY_MODE_FREQ "disp_mode_freq"
 
@@ -88,6 +89,7 @@ private:
 
     uint8_t syncTime;
     String timeZone;
+    String timeZoneLocation;
 
     uint8_t displayModeFreq;
 
@@ -149,6 +151,10 @@ public:
     String getTimeZone(void);
 
     void setTimeZone(String val);
+
+    String getTimeZoneLocation(void);
+
+    void setTimeZoneLocation(String val);
 
     uint8_t getDisplayModeFreq(void);
 

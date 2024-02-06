@@ -23,6 +23,7 @@ void AppPreferencesClass::begin(void)
 
     syncTime = preferences.getUInt(SYNC_TIME);
     timeZone = preferences.getString(TIME_ZONE);
+    timeZoneLocation = preferences.getString(TIME_ZONE_LOCATION);
 
     displayModeFreq = preferences.getUInt(DISPLAY_MODE_FREQ);
     displayMode = preferences.getUInt(DISPLAY_MODE);
@@ -146,6 +147,17 @@ void AppPreferencesClass::setTimeZone(String val)
 {
     timeZone = val;
     preferences.putString(TIME_ZONE, val);
+}
+
+String AppPreferencesClass::getTimeZoneLocation(void)
+{
+    return timeZoneLocation;
+}
+
+void AppPreferencesClass::setTimeZoneLocation(String val)
+{
+    timeZoneLocation = val;
+    preferences.putString(TIME_ZONE_LOCATION, val);
 }
 
 uint8_t AppPreferencesClass::getDisplayModeFreq(void)

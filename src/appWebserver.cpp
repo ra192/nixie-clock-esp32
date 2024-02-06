@@ -38,7 +38,7 @@ void AppWebserverClass::start(void)
       StaticJsonDocument<256> doc;
       
       doc[SYNC_TIME]=AppPreferences.getSyncTime();
-      doc[TIME_ZONE]=AppPreferences.getTimeZone();
+      doc[TIME_ZONE_LOCATION]=AppPreferences.getTimeZoneLocation();
       doc[H24_FORMAT]=AppPreferences.getH24Format();
 
       String jsonStr;
@@ -135,6 +135,9 @@ void AppWebserverClass::start(void)
     String timeZone = request->getParam(TIME_ZONE, true)->value();
     Clock.setTimeZone(timeZone);
     AppPreferences.setTimeZone(timeZone);
+
+    String timeZoneLocation = request->getParam(TIME_ZONE_LOCATION, true)->value();
+    AppPreferences.setTimeZoneLocation(timeZoneLocation);
 
     uint8_t h24Format = request->getParam(H24_FORMAT,true)->value().toInt();
     Clock.setH24Format(h24Format);

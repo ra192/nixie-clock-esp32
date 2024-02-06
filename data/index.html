@@ -20,7 +20,7 @@
             </h2>
             <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#accordion">
                 <div class="accordion-body">
-                    <form action="/save-time" method="POST">
+                    <form id="time_form" action="/save-time" method="POST">
                         <div class="row mb-3">
                             <label for="time" class="col-sm-2 col-form-label">Time</label>
                             <div class="col-sm-4">
@@ -45,10 +45,7 @@
                         <div class="row mb-3">
                             <label for="time_zone" class="col-sm-2 col-form-label">Time zone</label>
                             <div class="col-sm-4">
-                                <select class="form-select" id="time_zone" name="time_zone">
-                                    <option value="EET-2EEST,M3.5.0/3,M10.5.0/4">Europe/Kiev</option>
-                                    <option value="GMT0BST,M3.5.0/1,M10.5.0">Europe/London</option>
-                                </select>
+                                <select class="form-select" id="time_zone" name="time_zone"></select>
                             </div>
                         </div>
                         <div class="row mb-3">
@@ -264,12 +261,11 @@
         const ledColor = document.getElementById('led_color');
         const ledMode = document.getElementById('led_mode');
 
-        function ledColorUpdateAttr(ledMode)
-        {
+        function ledColorUpdateAttr(ledMode) {
             if (ledMode == 1 || ledMode == 4) {
                 ledColor.removeAttribute('disabled');
             } else {
-                ledColor.setAttribute('disabled','');
+                ledColor.setAttribute('disabled', '');
             }
         };
 
@@ -281,10 +277,42 @@
             alpha: false
         });
 
-        fetch('/get-time').then(response => response.json()).then(data => {
+        let timeZoneLocPromise = fetch('/get-time').then(response => response.json()).then(data => {
             document.getElementById('sync_time').value = data['sync_time'];
-            document.getElementById('time_zone').value = data['time_zone'];
             document.getElementById('24h_format').value = data['24h_format'];
+            return data['time_zone_loc'];
+        });
+
+        fetch('/zones.json').then(response => response.json()).then(data => {
+            var timeZoneSel = document.getElementById('time_zone');
+            timeZoneLocPromise.then(timeZoneLoc => {
+                for (const [key, value] of Object.entries(data)) {
+                    var option = document.createElement('option');
+
+                    option.text = key;
+                    option.value = value;
+                    if(key == timeZoneLoc) {
+                        option.selected = true;
+                    }
+
+                    timeZoneSel.appendChild(option);
+                }
+            });
+        });
+
+        document.getElementById('time_form').addEventListener("submit", function (event) {
+            event.preventDefault();
+            var form = document.getElementById("time_form");
+
+            var timeZoneSel = document.getElementById("time_zone");
+            var tz_location = timeZoneSel.options[timeZoneSel.selectedIndex].text;
+
+            var input = document.createElement("input");
+            input.setAttribute("type", "hidden");
+            input.setAttribute("name", "time_zone_loc");
+            input.setAttribute("value", tz_location);
+            form.appendChild(input);
+            form.submit();
         });
 
         fetch('/get-settings').then(response => response.json()).then(data => {
