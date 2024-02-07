@@ -57,6 +57,8 @@
 
 #define H24_FORMAT "24h_format"
 #define CELSIUS_TEMP "celsius_temp"
+#define TEMP_CORRECTION "temp_correct"
+#define TEMP_CORRECTION_DEFAULT 6
 
 #define DOT_BRIGHTNESS "dot_brightness"
 #define DOT_BRIGHTNESS_DEFAULT 128
@@ -101,6 +103,7 @@ private:
 
     uint8_t h24Format;
     uint8_t celsiusTemp;
+    uint8_t tempCorrection;
 
     uint8_t dotBrightness;
     uint8_t dotMode;
@@ -179,6 +182,10 @@ public:
     uint8_t getCelsiusTemp(void);
 
     void setCelsiusTemp(uint8_t val);
+
+    uint8_t getTempCorrection(void);
+
+    void setTempCorrection(uint8_t val);
 
     uint8_t getDotBrightness(void);
 

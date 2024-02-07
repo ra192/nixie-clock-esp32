@@ -66,6 +66,7 @@ void setup()
   Clock.setReadTemp(readTemp);
 
   Clock.setSyncTime(AppPreferences.getSyncTime());
+  Clock.setTempCorrection(AppPreferences.getTempCorrection());
   Clock.setTimeZone(AppPreferences.getTimeZone());
 
   Clock.begin();

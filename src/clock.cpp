@@ -95,11 +95,11 @@ uint16_t ClockClass::getTempCenti()
 {
     if (celsiusTemp)
     {
-        return temperature.AsCentiDegC();
+        return temperature.AsCentiDegC() - tempCorrection * 100;
     }
     else
     {
-        return temperature.AsFloatDegF() * 100;
+        return (temperature.AsFloatDegF() - tempCorrection) * 100;
     }
 }
 
@@ -135,6 +135,11 @@ void ClockClass::setReadTemp(bool val)
 void ClockClass::setSyncTime(bool val)
 {
     syncTime = val;
+}
+
+void ClockClass::setTempCorrection(uint8_t val)
+{
+    tempCorrection = val;
 }
 
 void ClockClass::setTimeZone(String val)

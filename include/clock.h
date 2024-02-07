@@ -23,7 +23,7 @@ private:
     bool h24Format;
     bool readTemp;
     bool syncTime;
-    
+    uint8_t tempCorrection;
     String timeZone;
 
     static void updateTimeTask(void *params);
@@ -62,6 +62,8 @@ public:
     void setReadTemp(bool val);
 
     void setSyncTime(bool val);
+
+    void setTempCorrection(uint8_t val);
 
     void setTimeZone(String val);
 };

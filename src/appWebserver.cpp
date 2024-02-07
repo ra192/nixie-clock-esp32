@@ -68,6 +68,7 @@ void AppWebserverClass::start(void)
       doc[DIGIT_EFFECT]=AppPreferences.getDigitEffect();
       doc[TRANSITION_EFFECT]=AppPreferences.getTransitionEffect();
       doc[CELSIUS_TEMP]=AppPreferences.getCelsiusTemp();
+      doc[TEMP_CORRECTION]=AppPreferences.getTempCorrection();
       doc[DOT_BRIGHTNESS]=AppPreferences.getDotBrightness();
       doc[DOT_MODE]=AppPreferences.getDotMode();
 
@@ -179,6 +180,10 @@ void AppWebserverClass::start(void)
               uint8_t celsiusTemp = request->getParam(CELSIUS_TEMP,true)->value().toInt();
               Clock.setCelsiusTemp(celsiusTemp);
               AppPreferences.setCelsiusTemp(celsiusTemp);
+
+              uint8_t tempCorrection = request->getParam(TEMP_CORRECTION,true)->value().toInt();
+              Clock.setTempCorrection(tempCorrection);
+              AppPreferences.setTempCorrection(tempCorrection);
 
               uint8_t dotBrightness = request->getParam(DOT_BRIGHTNESS, true)->value().toInt();
               AppPreferences.setDotBrightness(dotBrightness);

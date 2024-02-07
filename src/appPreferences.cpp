@@ -31,6 +31,7 @@ void AppPreferencesClass::begin(void)
     transitionEffect = preferences.getUInt(TRANSITION_EFFECT, FLIP_SEQ_TRANSITION_EFFECT);
     h24Format = preferences.getUInt(H24_FORMAT, 1);
     celsiusTemp = preferences.getUInt(CELSIUS_TEMP, 1);
+    tempCorrection = preferences.getUInt(TEMP_CORRECTION, TEMP_CORRECTION_DEFAULT);
 
     dotBrightness = preferences.getUInt(DOT_BRIGHTNESS, DOT_BRIGHTNESS_DEFAULT);
     dotMode = preferences.getUInt(DOT_MODE, DOT_MODE_DEFAULT);
@@ -224,6 +225,17 @@ void AppPreferencesClass::setCelsiusTemp(uint8_t val)
 {
     celsiusTemp = val;
     preferences.putUInt(CELSIUS_TEMP, val);
+}
+
+uint8_t AppPreferencesClass::getTempCorrection(void)
+{
+    return tempCorrection;
+}
+
+void AppPreferencesClass::setTempCorrection(uint8_t val)
+{
+    tempCorrection = val;
+    preferences.putInt(TEMP_CORRECTION, val);
 }
 
 uint8_t AppPreferencesClass::getDotBrightness(void)
