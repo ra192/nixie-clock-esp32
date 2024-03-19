@@ -14,9 +14,9 @@
 
 void AppWebserverClass::start(void)
 {
-    server.on(
-        "/get-network-settings", HTTP_GET, [](AsyncWebServerRequest *request)
-        {     
+  server.on(
+      "/get-network-settings", HTTP_GET, [](AsyncWebServerRequest *request)
+      {     
       StaticJsonDocument<1024> doc;
 
       doc[SSID_PARAM] = AppPreferences.getSSID();
@@ -33,8 +33,8 @@ void AppWebserverClass::start(void)
       
       request->send(200,"application/json", jsonStr); });
 
-    server.on("/get-time", HTTP_GET, [](AsyncWebServerRequest *request)
-              {
+  server.on("/get-time", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
       StaticJsonDocument<256> doc;
       
       doc[SYNC_TIME]=AppPreferences.getSyncTime();
@@ -46,8 +46,8 @@ void AppWebserverClass::start(void)
       
       request->send(200,"application/json", jsonStr); });
 
-    server.on("/get-settings", HTTP_GET, [](AsyncWebServerRequest *request)
-              {
+  server.on("/get-settings", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
       StaticJsonDocument<256> doc;
       
       doc[NIXIE_BRIGHTNESS]=AppPreferences.getNixieBrightness();
@@ -77,8 +77,8 @@ void AppWebserverClass::start(void)
       
       request->send(200,"application/json", jsonStr); });
 
-    server.on("/get-led-settings", HTTP_GET, [](AsyncWebServerRequest *request)
-              {
+  server.on("/get-led-settings", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
       StaticJsonDocument<256> doc;
       
       doc[LED_BRIGHTNESS]=AppPreferences.getLedBrightness();
@@ -94,8 +94,8 @@ void AppWebserverClass::start(void)
       
       request->send(200,"application/json", jsonStr); });
 
-    server.on("/save-wifi-creds", HTTP_POST, [](AsyncWebServerRequest *request)
-              {
+  server.on("/save-wifi-creds", HTTP_POST, [](AsyncWebServerRequest *request)
+            {
       String ssid = request->getParam(SSID_PARAM, true)->value();
       AppPreferences.setSSID(ssid);
       
@@ -113,8 +113,8 @@ void AppWebserverClass::start(void)
 
       ESP.restart(); });
 
-    server.on("/save-time", HTTP_POST, [](AsyncWebServerRequest *request)
-              {
+  server.on("/save-time", HTTP_POST, [](AsyncWebServerRequest *request)
+            {
     String time = request->getParam("time", true)->value();
 
     uint8_t hour = time.substring(0,2).toInt();
@@ -146,8 +146,8 @@ void AppWebserverClass::start(void)
 
     request->redirect("/"); });
 
-    server.on("/save-settings", HTTP_POST, [](AsyncWebServerRequest *request)
-              { 
+  server.on("/save-settings", HTTP_POST, [](AsyncWebServerRequest *request)
+            { 
               uint8_t nixieBrightness = request->getParam(NIXIE_BRIGHTNESS,true)->value().toInt();
               Nixie.setBrightness(nixieBrightness);
               AppPreferences.setNixieBrightness(nixieBrightness);
@@ -194,8 +194,8 @@ void AppWebserverClass::start(void)
 
               request->redirect("/"); });
 
-    server.on("/save-led-settings", HTTP_POST, [](AsyncWebServerRequest *request)
-              { 
+  server.on("/save-led-settings", HTTP_POST, [](AsyncWebServerRequest *request)
+            { 
               uint8_t ledBrightness = request->getParam(LED_BRIGHTNESS, true)->value().toInt();
               Led.setBrightness(ledBrightness);
               AppPreferences.setLedBrightness(ledBrightness);
@@ -216,9 +216,9 @@ void AppWebserverClass::start(void)
 
               request->redirect("/"); });
 
-    server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
+  server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
 
-    server.begin();
+  server.begin();
 }
 
 AppWebserverClass AppWebserver(80);
