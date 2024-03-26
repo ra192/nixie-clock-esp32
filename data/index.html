@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Pulsar nixie clock</title>
     <link href="bootstrap.min.css" rel="stylesheet">
-    <link href="coloris.min.css" rel="stylesheet" />
 </head>
 
 <body>
@@ -214,7 +213,7 @@
                         <div class="row mb-3">
                             <label for="led_color" class="col-sm-2 col-form-label">Led color</label>
                             <div class="col-sm-4">
-                                <input type="text" class="form-control" id="led_color" name="led_color" data-coloris>
+                                <input type="color" class="form-control form-control-color" id="led_color" name="led_color">
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Submit</button>
@@ -259,7 +258,6 @@
     </div>
 
     <script src="bootstrap.bundle.min.js"></script>
-    <script src="coloris.min.js"></script>
     <script>
         document.getElementById('time').value = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
         document.getElementById("date").valueAsDate = new Date();
@@ -278,10 +276,6 @@
         ledMode.onchange = function () {
             ledColorUpdateAttr(this.value);
         };
-
-        Coloris({
-            alpha: false
-        });
 
         let timeZoneLocPromise = fetch('/get-time').then(response => response.json()).then(data => {
             document.getElementById('sync_time').value = data['sync_time'];
