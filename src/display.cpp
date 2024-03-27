@@ -41,8 +41,20 @@ bool DisplayClass::checkTransition()
         return Clock.getMinute() % 2 == 0 && Clock.getSecond() == 30;
         break;
 
-    default:
+    case EVERY_5_MIN_DISP_MODE:
         return Clock.getMinute() % 5 == 0 && Clock.getSecond() == 30;
+        break;
+
+    case EVERY_10_MIN_DISP_MODE:
+        return Clock.getMinute() % 10 == 0 && Clock.getSecond() == 30;
+        break;
+
+    case EVERY_20_MIN_DISP_MODE:
+        return Clock.getMinute() % 20 == 0 && Clock.getSecond() == 30;
+        break;
+
+    default:
+        return Clock.getMinute() % 30 == 0 && Clock.getSecond() == 30;
         break;
     }
 }

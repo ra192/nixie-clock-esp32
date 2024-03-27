@@ -31,6 +31,9 @@
 #define EVERY_MIN_DISP_MODE 1  
 #define EVERY_2_MIN_DISP_MODE 2
 #define EVERY_5_MIN_DISP_MODE 3
+#define EVERY_10_MIN_DISP_MODE 4
+#define EVERY_20_MIN_DISP_MODE 5
+#define EVERY_30_MIN_DISP_MODE 6
 
 #define DISPLAY_MODE "display_mode"
 
